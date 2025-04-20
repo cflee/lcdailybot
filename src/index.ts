@@ -11,29 +11,88 @@
  * Learn more at https://developers.cloudflare.com/workers/
  */
 
+import { Bot, webhookCallback } from "grammy";
+import * as db from "./db";
+
 export default {
 	async fetch(request, env, ctx): Promise<Response> {
 		if (request.method === "POST") {
 			const url = new URL(request.url);
 			if (url.pathname !== "/telegramWebhook") {
-				console.log(`Received unexpected path name: ${url.pathname}`);
 				return new Response("Not Found", { status: 404 });
 			}
-			const webhookSecret = env.TELEGRAM_BOT_WEBHOOK_SECRET;
-			const receivedToken = request.headers.get(
-				"X-Telegram-Bot-Api-Secret-Token",
-			);
-			if (receivedToken !== webhookSecret) {
-				console.log(`Received unexpected token: ${receivedToken}}`);
-				return new Response("Unauthorized", { status: 401 });
-			}
-			const update = await request.json();
-			console.log(update);
-			return new Response("OK", { status: 200 });
+
+			const bot = new Bot(env.TELEGRAM_BOT_TOKEN, {
+				botInfo: JSON.parse(env.TELEGRAM_BOT_INFO),
+			});
+			bot.command("start", (ctx) => {
+				console.log(`Received start command from chat: ${ctx.chat.id}`);
+				return ctx.reply("Hello world", {
+					reply_parameters: {
+						message_id: ctx.msg.message_id,
+					},
+				});
+			});
+			bot.command("subscribe", async (ctx) => {
+				console.log(`Received subscribe command from chat: ${ctx.chat.id}`);
+				if (await db.checkSubscriber(env.DB, ctx.chat.id)) {
+					console.log("already subscribed");
+					// already existing
+					await ctx.reply("This chat was already subscribed!", {
+						reply_parameters: {
+							message_id: ctx.msg.message_id,
+						},
+					});
+				} else {
+					// write to database
+					if (await db.insertSubscriber(env.DB, ctx.chat.id)) {
+						console.log("subscribe success");
+						await ctx.reply("This chat is now subscribed!", {
+							reply_parameters: {
+								message_id: ctx.msg.message_id,
+							},
+						});
+					} else {
+						console.log("subscribe fail");
+						await ctx.reply("There was a problem subscribing this chat.", {
+							reply_parameters: {
+								message_id: ctx.msg.message_id,
+							},
+						});
+					}
+				}
+			});
+			bot.command("unsubscribe", async (ctx) => {
+				console.log(`Received unsubscribe command from chat: ${ctx.chat.id}`);
+				if (!(await db.checkSubscriber(env.DB, ctx.chat.id))) {
+					// not already existing
+					await ctx.reply("This chat was already not subscribed!", {
+						reply_parameters: {
+							message_id: ctx.msg.message_id,
+						},
+					});
+				} else {
+					// write to database
+					if (await db.deleteSubscriber(env.DB, ctx.chat.id)) {
+						await ctx.reply("This chat is now unsubscribed!", {
+							reply_parameters: {
+								message_id: ctx.msg.message_id,
+							},
+						});
+					} else {
+						await ctx.reply("There was a problem unsubscribing this chat.", {
+							reply_parameters: {
+								message_id: ctx.msg.message_id,
+							},
+						});
+					}
+				}
+			});
+
+			return webhookCallback(bot, "cloudflare-mod", {
+				secretToken: env.TELEGRAM_BOT_WEBHOOK_SECRET,
+			})(request);
 		}
-		console.log(
-			`Received unexpected method: ${request.method} to ${request.url}`,
-		);
 		return new Response("Not Found", { status: 404 });
 	},
 } satisfies ExportedHandler<Env>;

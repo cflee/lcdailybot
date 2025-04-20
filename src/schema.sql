@@ -1,0 +1,4 @@
+CREATE TABLE IF NOT EXISTS subscriber (
+	id INTEGER PRIMARY KEY,
+	chat_id INTEGER NOT NULL
+);
