@@ -13,6 +13,7 @@
 
 import { Bot, webhookCallback } from "grammy";
 import * as db from "./db";
+import { daily } from "./leetcode";
 
 export default {
 	async fetch(request, env, ctx): Promise<Response> {
@@ -87,6 +88,16 @@ export default {
 						});
 					}
 				}
+			});
+			bot.command("daily", async (ctx) => {
+				console.log(`Received daily command from chat: ${ctx.chat.id}`);
+				const curDaily = await daily(env.DB);
+				console.log(curDaily);
+				const message = `<b>Daily Challenge for ${curDaily.date}</b>
+<a href="${curDaily.url}">${curDaily.questionTitle}</a> (${curDaily.questionDifficulty})`;
+				await ctx.reply(message, {
+					parse_mode: "HTML"
+				});
 			});
 
 			return webhookCallback(bot, "cloudflare-mod", {
