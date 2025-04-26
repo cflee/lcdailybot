@@ -13,7 +13,7 @@
 
 import { Bot, webhookCallback } from "grammy";
 import * as db from "./db";
-import { daily } from "./leetcode";
+import { daily, todayUtcDate, leetcodeApiDaily, leetcodeApiRecentAcSubmissions } from "./leetcode";
 
 export default {
 	async fetch(request, env, ctx): Promise<Response> {
@@ -147,6 +147,74 @@ export default {
 		return new Response("Not Found", { status: 404 });
 	},
 	async scheduled(controller, env, ctx) {
-		console.log("schedule task starting");
+		console.log("scheduled task starting");
+		const DB = env.DB;
+		const botToken = env.TELEGRAM_BOT_TOKEN;
+		const today = todayUtcDate();
+
+		let dailyQuestion = await db.getDailyQuestion(DB, today);
+		if (!dailyQuestion) {
+			const apiDaily = await leetcodeApiDaily();
+			await db.insertDailyQuestion(DB, apiDaily);
+			dailyQuestion = apiDaily;
+		}
+
+		const allUsernames = await db.getAllLeetcodeUsernames(DB);
+
+		for (const username of allUsernames) {
+			const completion = await db.getCompletionStatus(DB, today, username);
+			if (completion === null || !completion) {
+				try {
+					const recents = await leetcodeApiRecentAcSubmissions(username, 20);
+					const solved = recents.some((s) => s.titleSlug === dailyQuestion.questionTitleSlug);
+					await db.setCompletionStatus(DB, today, username, solved);
+				} catch (err) {
+					console.error(`Failed to get submissions for ${username}:`, err);
+				}
+			}
+		}
+
+		const allChats = await db.getAllChats(DB);
+		for (const chatId of allChats) {
+			const usernames = await db.getLeetcodeUsernamesForChat(DB, chatId);
+			const statusList = [];
+			for (const username of usernames) {
+				const completed = await db.getCompletionStatus(DB, today, username);
+				statusList.push({ username, completed: !!completed });
+			}
+			const red = statusList.filter((u) => !u.completed).sort((a, b) => a.username.localeCompare(b.username));
+			const green = statusList.filter((u) => u.completed).sort((a, b) => a.username.localeCompare(b.username));
+			const emojiLine = `${"🔴".repeat(red.length)}${"🟢".repeat(green.length)}`;
+			let msg = `${emojiLine}
+<b>Daily Challenge for ${today}</b>
+<a href="${dailyQuestion.url}">${dailyQuestion.questionTitle}</a> (${dailyQuestion.questionDifficulty})`;
+			for (const u of red) {
+				msg += `\n🔴 ${u.username}`;
+			}
+			for (const u of green) {
+				msg += `\n🟢 ${u.username}`;
+			}
+
+			const previouslySentMsgId = await db.getDailyMessageSent(DB, today, chatId);
+			const bot = new Bot(botToken);
+			if (previouslySentMsgId) {
+				try {
+					await bot.api.editMessageText(chatId, Number(previouslySentMsgId), msg, { parse_mode: "HTML", link_preview_options: { is_disabled: true } });
+				} catch (e) {
+					console.error("Failed to update message:", e);
+				}
+			} else {
+				try {
+					const sent = await bot.api.sendMessage(chatId, msg, { parse_mode: "HTML", link_preview_options: { is_disabled: true } });
+					if (sent?.message_id) {
+						await db.setDailyMessageSent(DB, today, chatId, sent.message_id);
+					} else {
+						console.error("Failed to send message but didn't get an exception");
+					}
+				} catch (e) {
+					console.error("Failed to send message:", e);
+				}
+			}
+		}
 	},
 } satisfies ExportedHandler<Env>;

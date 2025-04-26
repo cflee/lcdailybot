@@ -155,3 +155,129 @@ export async function insertDailyQuestion(
 		return false;
 	}
 }
+
+// Get all chat IDs
+export async function getAllChats(DB: D1Database): Promise<number[]> {
+	try {
+		const result = await DB.prepare("SELECT chat_id FROM chat").all();
+		// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+		return result.results.map((row: any) => row.chat_id);
+	} catch (error) {
+		console.error("Error fetching all chats:", error);
+		return [];
+	}
+}
+
+// Get all leetcode usernames for all chats
+export async function getAllLeetcodeUsernames(
+	DB: D1Database,
+): Promise<string[]> {
+	try {
+		const result = await DB.prepare(
+			"SELECT DISTINCT leetcode_username FROM chat_leetcode_usernames",
+		).all();
+		// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+		return result.results.map((row: any) => row.leetcode_username);
+	} catch (error) {
+		console.error("Error fetching all leetcode usernames:", error);
+		return [];
+	}
+}
+
+// Get leetcode usernames for a specific chat
+export async function getLeetcodeUsernamesForChat(
+	DB: D1Database,
+	chatId: number,
+): Promise<string[]> {
+	try {
+		const result = await DB.prepare(
+			"SELECT leetcode_username FROM chat_leetcode_usernames WHERE chat_id = ?",
+		)
+			.bind(chatId)
+			.all();
+		// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+		return result.results.map((row: any) => row.leetcode_username);
+	} catch (error) {
+		console.error("Error fetching leetcode usernames for chat:", error);
+		return [];
+	}
+}
+
+// Check if completion status exists
+export async function getCompletionStatus(
+	DB: D1Database,
+	date: string,
+	username: string,
+): Promise<boolean | null> {
+	try {
+		const result = await DB.prepare(
+			"SELECT completed FROM leetcode_daily_completion WHERE date = ? AND leetcode_username = ?",
+		)
+			.bind(date, username)
+			.first();
+		if (!result) return null;
+		return !!result.completed;
+	} catch (error) {
+		console.error("Error fetching completion status:", error);
+		return null;
+	}
+}
+
+// Set completion status
+export async function setCompletionStatus(
+	DB: D1Database,
+	date: string,
+	username: string,
+	completed: boolean,
+): Promise<boolean> {
+	try {
+		const result = await DB.prepare(
+			"INSERT OR REPLACE INTO leetcode_daily_completion (date, leetcode_username, completed) VALUES (?, ?, ?)",
+		)
+			.bind(date, username, completed ? 1 : 0)
+			.run();
+		return result.success;
+	} catch (error) {
+		console.error("Error setting completion status:", error);
+		return false;
+	}
+}
+
+// Get sent message info for chat/date
+export async function getDailyMessageSent(
+	DB: D1Database,
+	date: string,
+	chatId: number,
+): Promise<number | null> {
+	try {
+		const result = await DB.prepare(
+			"SELECT message_id FROM daily_question_sent WHERE date = ? AND chat_id = ?",
+		)
+			.bind(date, chatId)
+			.first();
+		return result ? Number(result.message_id) : null;
+	} catch (error) {
+		console.error("Error fetching daily message sent:", error);
+		return null;
+	}
+}
+
+// Set sent message info for chat/date
+export async function setDailyMessageSent(
+	DB: D1Database,
+	date: string,
+	chatId: number,
+	messageId: number,
+): Promise<boolean> {
+	try {
+		const result = await DB.prepare(
+			"INSERT OR REPLACE INTO daily_question_sent (date, chat_id, message_id) VALUES (?, ?, ?)",
+		)
+			.bind(date, chatId, messageId)
+			.run();
+		return result.success;
+	} catch (error) {
+		console.error("Error setting daily message sent:", error);
+		return false;
+	}
+}
