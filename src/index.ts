@@ -213,6 +213,10 @@ export default {
 						await db.setDailyMessageSent(DB, today, chatId, Number(previouslySentMsg.messageId), msg);
 					} catch (e) {
 						console.error("Failed to update message:", e);
+						if (e instanceof Error && e.message.includes("message not modified")) {
+							console.log("Force update database with this message since it was not modified");
+							await db.setDailyMessageSent(DB, today, chatId, Number(previouslySentMsg.messageId), msg);
+						}
 					}
 				}
 			} else {
