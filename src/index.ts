@@ -35,58 +35,42 @@ export default {
 				});
 			});
 			bot.command("subscribe", async (ctx) => {
-				console.log(`Received subscribe command from chat: ${ctx.chat.id}`);
-				if (await db.checkSubscriber(env.DB, ctx.chat.id)) {
-					console.log("already subscribed");
-					// already existing
+				const chatId = ctx.chat.id;
+				if (await db.checkSubscriber(env.DB, chatId)) {
 					await ctx.reply("This chat was already subscribed!", {
-						reply_parameters: {
-							message_id: ctx.msg.message_id,
-						},
+						reply_parameters: { message_id: ctx.msg.message_id },
+					});
+					return;
+				}
+				const ok = await db.insertSubscriber(env.DB, chatId);
+				if (ok) {
+					await ctx.reply("This chat is now subscribed!", {
+						reply_parameters: { message_id: ctx.msg.message_id },
 					});
 				} else {
-					// write to database
-					if (await db.insertSubscriber(env.DB, ctx.chat.id)) {
-						console.log("subscribe success");
-						await ctx.reply("This chat is now subscribed!", {
-							reply_parameters: {
-								message_id: ctx.msg.message_id,
-							},
-						});
-					} else {
-						console.log("subscribe fail");
-						await ctx.reply("There was a problem subscribing this chat.", {
-							reply_parameters: {
-								message_id: ctx.msg.message_id,
-							},
-						});
-					}
+					await ctx.reply("There was a problem subscribing this chat.", {
+						reply_parameters: { message_id: ctx.msg.message_id },
+					});
 				}
 			});
+
 			bot.command("unsubscribe", async (ctx) => {
-				console.log(`Received unsubscribe command from chat: ${ctx.chat.id}`);
-				if (!(await db.checkSubscriber(env.DB, ctx.chat.id))) {
-					// not already existing
+				const chatId = ctx.chat.id;
+				if (!(await db.checkSubscriber(env.DB, chatId))) {
 					await ctx.reply("This chat was already not subscribed!", {
-						reply_parameters: {
-							message_id: ctx.msg.message_id,
-						},
+						reply_parameters: { message_id: ctx.msg.message_id },
+					});
+					return;
+				}
+				const ok = await db.deleteSubscriber(env.DB, chatId);
+				if (ok) {
+					await ctx.reply("This chat is now unsubscribed!", {
+						reply_parameters: { message_id: ctx.msg.message_id },
 					});
 				} else {
-					// write to database
-					if (await db.deleteSubscriber(env.DB, ctx.chat.id)) {
-						await ctx.reply("This chat is now unsubscribed!", {
-							reply_parameters: {
-								message_id: ctx.msg.message_id,
-							},
-						});
-					} else {
-						await ctx.reply("There was a problem unsubscribing this chat.", {
-							reply_parameters: {
-								message_id: ctx.msg.message_id,
-							},
-						});
-					}
+					await ctx.reply("There was a problem unsubscribing this chat.", {
+						reply_parameters: { message_id: ctx.msg.message_id },
+					});
 				}
 			});
 			bot.command("daily", async (ctx) => {
