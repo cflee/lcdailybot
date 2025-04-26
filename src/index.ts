@@ -80,7 +80,7 @@ export default {
 				const message = `<b>Daily Challenge for ${curDaily.date}</b>
 <a href="${curDaily.url}">${curDaily.questionTitle}</a> (${curDaily.questionDifficulty})`;
 				await ctx.reply(message, {
-					parse_mode: "HTML"
+					parse_mode: "HTML",
 				});
 			});
 
