@@ -210,6 +210,7 @@ export default {
 				} else {
 					try {
 						await bot.api.editMessageText(chatId, Number(previouslySentMsg.messageId), msg, { parse_mode: "HTML", link_preview_options: { is_disabled: true } });
+						await db.setDailyMessageSent(DB, today, chatId, Number(previouslySentMsg.messageId), msg);
 					} catch (e) {
 						console.error("Failed to update message:", e);
 					}
