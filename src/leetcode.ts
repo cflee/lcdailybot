@@ -10,7 +10,7 @@ export function todayUtcDate(): string {
 export async function daily(DB: D1Database): Promise<LcDailyProblem> {
 	const date = todayUtcDate();
 	const dbResult = await DB.prepare(
-		"SELECT 'date', title, question_id, difficulty, url FROM lcdailyquestion WHERE 'date' = ?",
+		"SELECT date, title, question_id, difficulty, url FROM lcdailyquestion WHERE date = ?",
 	)
 		.bind(date)
 		.run();
@@ -27,7 +27,7 @@ export async function daily(DB: D1Database): Promise<LcDailyProblem> {
 
 	const apiDaily = await alfaLeetcodeApiDaily();
 	await DB.prepare(
-		"INSERT INTO lcdailyquestion ('date', title, question_id, difficulty, url) VALUES (?, ?, ?, ?, ?)"
+		"INSERT INTO lcdailyquestion (date, title, question_id, difficulty, url) VALUES (?, ?, ?, ?, ?)",
 	)
 		.bind(
 			date,
