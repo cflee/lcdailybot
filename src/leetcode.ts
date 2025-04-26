@@ -94,6 +94,7 @@ export async function leetcodeApiDaily(): Promise<LcDailyProblem> {
 		date: daily.date,
 		questionId: daily.question.questionFrontendId,
 		questionTitle: daily.question.title,
+		questionTitleSlug: daily.question.titleSlug,
 		questionDifficulty: daily.question.difficulty,
 	};
 }
@@ -137,6 +138,7 @@ export async function daily(DB: D1Database): Promise<LcDailyProblem> {
 	const questionData = {
 		date: date,
 		questionTitle: apiDaily.questionTitle,
+		questionTitleSlug: apiDaily.questionTitleSlug,
 		questionId: apiDaily.questionId,
 		questionDifficulty: apiDaily.questionDifficulty,
 		url: apiDaily.url,

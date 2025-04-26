@@ -97,6 +97,7 @@ export async function removeLeetcodeUsername(
 export interface LcDailyProblem {
 	date: string;
 	questionTitle: string;
+	questionTitleSlug: string;
 	questionId: string;
 	questionDifficulty: string;
 	url: string;
@@ -108,7 +109,7 @@ export async function getDailyQuestion(
 ): Promise<LcDailyProblem | null> {
 	try {
 		const dbResult = await DB.prepare(
-			"SELECT date, title, question_id, difficulty, url FROM lcdailyquestion WHERE date = ?",
+			"SELECT date, title, title_slug, question_id, difficulty, url FROM leetcode_daily_question WHERE date = ?",
 		)
 			.bind(date)
 			.run();
@@ -117,6 +118,7 @@ export async function getDailyQuestion(
 			return {
 				date: dbResult.results[0].date as string,
 				questionTitle: dbResult.results[0].title as string,
+				questionTitleSlug: dbResult.results[0].title_slug as string,
 				questionId: dbResult.results[0].question_id as string,
 				questionDifficulty: dbResult.results[0].difficulty as string,
 				url: dbResult.results[0].url as string,
@@ -135,11 +137,12 @@ export async function insertDailyQuestion(
 ): Promise<boolean> {
 	try {
 		const result = await DB.prepare(
-			"INSERT INTO lcdailyquestion (date, title, question_id, difficulty, url) VALUES (?, ?, ?, ?, ?)",
+			"INSERT INTO leetcode_daily_question (date, title, title_slug, question_id, difficulty, url) VALUES (?, ?, ?, ?, ?, ?)",
 		)
 			.bind(
 				data.date,
 				data.questionTitle,
+				data.questionTitleSlug,
 				data.questionId,
 				data.questionDifficulty,
 				data.url,
