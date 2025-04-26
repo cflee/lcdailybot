@@ -30,5 +30,6 @@ CREATE TABLE IF NOT EXISTS daily_question_sent (
     id INTEGER PRIMARY KEY,
     date TEXT NOT NULL,
     chat_id INTEGER NOT NULL,
-    message_id INTEGER NOT NULL
+    message_id INTEGER NOT NULL,
+    message_text TEXT
 );
