@@ -231,10 +231,12 @@ export async function setCompletionStatus(
 	completed: boolean,
 ): Promise<boolean> {
 	try {
+		const completedInt = completed ? 1 : 0;
 		const result = await DB.prepare(
-			"INSERT OR REPLACE INTO leetcode_daily_completion (date, leetcode_username, completed) VALUES (?, ?, ?)",
+			"INSERT INTO leetcode_daily_completion (date, leetcode_username, completed) VALUES (?, ?, ?) " +
+				"ON CONFLICT (date, leetcode_username) DO UPDATE SET completed = ?",
 		)
-			.bind(date, username, completed ? 1 : 0)
+			.bind(date, username, completedInt, completedInt)
 			.run();
 		return result.success;
 	} catch (error) {
