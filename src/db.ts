@@ -248,14 +248,14 @@ export async function getDailyMessageSent(
 	DB: D1Database,
 	date: string,
 	chatId: number,
-): Promise<number | null> {
+): Promise<{ message_id: number; message_text: string } | null> {
 	try {
 		const result = await DB.prepare(
-			"SELECT message_id FROM daily_question_sent WHERE date = ? AND chat_id = ?",
+			"SELECT message_id, message_text FROM daily_question_sent WHERE date = ? AND chat_id = ?",
 		)
 			.bind(date, chatId)
 			.first();
-		return result ? Number(result.message_id) : null;
+		return result ? { message_id: Number(result.message_id), message_text: result.message_text as string } : null;
 	} catch (error) {
 		console.error("Error fetching daily message sent:", error);
 		return null;
@@ -268,12 +268,13 @@ export async function setDailyMessageSent(
 	date: string,
 	chatId: number,
 	messageId: number,
+	messageText: string,
 ): Promise<boolean> {
 	try {
 		const result = await DB.prepare(
-			"INSERT OR REPLACE INTO daily_question_sent (date, chat_id, message_id) VALUES (?, ?, ?)",
+			"INSERT OR REPLACE INTO daily_question_sent (date, chat_id, message_id, message_text) VALUES (?, ?, ?, ?)",
 		)
-			.bind(date, chatId, messageId)
+			.bind(date, chatId, messageId, messageText)
 			.run();
 		return result.success;
 	} catch (error) {
@@ -287,15 +288,15 @@ export async function getLastDailyMessageSent(
 	DB: D1Database,
 	chatId: number,
 	beforeDate: string,
-): Promise<{ date: string; message_id: number } | null> {
+): Promise<{ date: string; message_id: number; message_text: string } | null> {
 	try {
 		const result = await DB.prepare(
-			"SELECT date, message_id FROM daily_question_sent WHERE chat_id = ? AND date < ? ORDER BY date DESC LIMIT 1"
+			"SELECT date, message_id, message_text FROM daily_question_sent WHERE chat_id = ? AND date < ? ORDER BY date DESC LIMIT 1"
 		)
 			.bind(chatId, beforeDate)
 			.first();
 		if (result) {
-			return { date: result.date as string, message_id: Number(result.message_id) };
+			return { date: result.date as string, message_id: Number(result.message_id), message_text: result.message_text as string };
 		}
 		return null;
 	} catch (error) {

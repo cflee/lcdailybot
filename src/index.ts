@@ -195,20 +195,25 @@ export default {
 				msg += `\n🟢 ${u.username}`;
 			}
 
-			const previouslySentMsgId = await db.getDailyMessageSent(DB, today, chatId);
+			const previouslySentMsg = await db.getDailyMessageSent(DB, today, chatId);
 			const bot = new Bot(botToken);
-			if (previouslySentMsgId) {
+			if (previouslySentMsg) {
+				// Do not try to edit message if the text is the same, as the editMessageText API will throw an error
+				if (msg === previouslySentMsg.message_text) {
+					console.log(`Message for chat ${chatId} is the same, skipping update`);
+				} else {
 				try {
-					await bot.api.editMessageText(chatId, Number(previouslySentMsgId), msg, { parse_mode: "HTML", link_preview_options: { is_disabled: true } });
+						await bot.api.editMessageText(chatId, Number(previouslySentMsg.message_id), msg, { parse_mode: "HTML", link_preview_options: { is_disabled: true } });
 				} catch (e) {
 					console.error("Failed to update message:", e);
+					}
 				}
 			} else {
 				// New message: unpin previous if any, then send and pin new
-				const lastMsg = await db.getLastDailyMessageSent(DB, chatId, today);
-				if (lastMsg) {
+				const prevDayMsg = await db.getLastDailyMessageSent(DB, chatId, today);
+				if (prevDayMsg) {
 					try {
-						await bot.api.unpinChatMessage(chatId, lastMsg.message_id);
+						await bot.api.unpinChatMessage(chatId, prevDayMsg.message_id);
 					} catch (e) {
 						console.log("Unpin previous message failed (but it might not be an error if somebody else unpinned it):", e);
 					}
@@ -216,7 +221,7 @@ export default {
 				try {
 					const sent = await bot.api.sendMessage(chatId, msg, { parse_mode: "HTML", link_preview_options: { is_disabled: true } });
 					if (sent?.message_id) {
-						await db.setDailyMessageSent(DB, today, chatId, sent.message_id);
+						await db.setDailyMessageSent(DB, today, chatId, sent.message_id, msg);
 						try {
 							await bot.api.pinChatMessage(chatId, sent.message_id, { disable_notification: true });
 						} catch (e) {
