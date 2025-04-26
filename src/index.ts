@@ -147,20 +147,23 @@ export default {
 		return new Response("Not Found", { status: 404 });
 	},
 	async scheduled(controller, env, ctx) {
-		console.log("scheduled task starting");
+		console.log("Scheduled task starting");
 		const DB = env.DB;
 		const botToken = env.TELEGRAM_BOT_TOKEN;
 		const today = todayUtcDate();
 
+		console.log(`Today's date: ${today}`);
 		let dailyQuestion = await db.getDailyQuestion(DB, today);
 		if (!dailyQuestion) {
 			const apiDaily = await leetcodeApiDaily();
 			await db.insertDailyQuestion(DB, apiDaily);
 			dailyQuestion = apiDaily;
 		}
+		console.log(`Today's question: ${dailyQuestion.questionTitle}`)
 
 		const allUsernames = await db.getAllLeetcodeUsernames(DB);
 
+		console.log(`Total LeetCode usernames: ${allUsernames.length}`);
 		for (const username of allUsernames) {
 			const completion = await db.getCompletionStatus(DB, today, username);
 			if (completion === null || !completion) {
@@ -172,10 +175,13 @@ export default {
 					console.error(`Failed to get submissions for ${username}:`, err);
 				}
 			}
+			console.log(`Completion status for ${username}: ${completion ? "solved" : "not solved"}`);
 		}
+		console.log("Completed processing LeetCode usernames");
 
 		const allChats = await db.getAllChats(DB);
 		for (const chatId of allChats) {
+			console.log(`Processing chat: ${chatId}`);
 			const usernames = await db.getLeetcodeUsernamesForChat(DB, chatId);
 			const statusList = [];
 			for (const username of usernames) {
@@ -202,10 +208,10 @@ export default {
 				if (msg === previouslySentMsg.message_text) {
 					console.log(`Message for chat ${chatId} is the same, skipping update`);
 				} else {
-				try {
+					try {
 						await bot.api.editMessageText(chatId, Number(previouslySentMsg.message_id), msg, { parse_mode: "HTML", link_preview_options: { is_disabled: true } });
-				} catch (e) {
-					console.error("Failed to update message:", e);
+					} catch (e) {
+						console.error("Failed to update message:", e);
 					}
 				}
 			} else {
@@ -234,6 +240,7 @@ export default {
 					console.error("Failed to send message:", e);
 				}
 			}
+			console.log(`Processed chat: ${chatId}`);
 		}
 	},
 } satisfies ExportedHandler<Env>;
