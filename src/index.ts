@@ -204,10 +204,24 @@ export default {
 					console.error("Failed to update message:", e);
 				}
 			} else {
+				// New message: unpin previous if any, then send and pin new
+				const lastMsg = await db.getLastDailyMessageSent(DB, chatId, today);
+				if (lastMsg) {
+					try {
+						await bot.api.unpinChatMessage(chatId, lastMsg.message_id);
+					} catch (e) {
+						console.log("Unpin previous message failed (but it might not be an error if somebody else unpinned it):", e);
+					}
+				}
 				try {
 					const sent = await bot.api.sendMessage(chatId, msg, { parse_mode: "HTML", link_preview_options: { is_disabled: true } });
 					if (sent?.message_id) {
 						await db.setDailyMessageSent(DB, today, chatId, sent.message_id);
+						try {
+							await bot.api.pinChatMessage(chatId, sent.message_id, { disable_notification: true });
+						} catch (e) {
+							console.error("Failed to pin message:", e);
+						}
 					} else {
 						console.error("Failed to send message but didn't get an exception");
 					}

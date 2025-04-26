@@ -281,3 +281,25 @@ export async function setDailyMessageSent(
 		return false;
 	}
 }
+
+// Get the most recent daily message sent for a chat (before a given date)
+export async function getLastDailyMessageSent(
+	DB: D1Database,
+	chatId: number,
+	beforeDate: string,
+): Promise<{ date: string; message_id: number } | null> {
+	try {
+		const result = await DB.prepare(
+			"SELECT date, message_id FROM daily_question_sent WHERE chat_id = ? AND date < ? ORDER BY date DESC LIMIT 1"
+		)
+			.bind(chatId, beforeDate)
+			.first();
+		if (result) {
+			return { date: result.date as string, message_id: Number(result.message_id) };
+		}
+		return null;
+	} catch (error) {
+		console.error("Error getting last daily message sent:", error);
+		return null;
+	}
+}
