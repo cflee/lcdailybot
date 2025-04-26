@@ -11,7 +11,7 @@
  * Learn more at https://developers.cloudflare.com/workers/
  */
 
-import { Bot, webhookCallback } from "grammy";
+import { Bot, GrammyError, webhookCallback } from "grammy";
 import * as db from "./db";
 import {
 	daily,
@@ -243,8 +243,8 @@ export default {
 					} catch (e) {
 						console.error("Failed to update message:", e);
 						if (
-							e instanceof Error &&
-							e.message.includes("message not modified")
+							e instanceof GrammyError &&
+							e.description.includes("message is not modified")
 						) {
 							console.log(
 								"Force update database with this message since it was not modified",
