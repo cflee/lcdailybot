@@ -100,6 +100,62 @@ export default {
 				});
 			});
 
+			bot.command("add_leetcode", async (ctx) => {
+				const chatId = ctx.chat.id;
+				const args = ctx.match?.trim();
+				if (!args) {
+					await ctx.reply("Usage: /add_leetcode <leetcode_username>", {
+						reply_parameters: { message_id: ctx.msg.message_id },
+					});
+					return;
+				}
+				if (!(await db.checkSubscriber(env.DB, chatId))) {
+					await ctx.reply("This chat must subscribe first.", {
+						reply_parameters: { message_id: ctx.msg.message_id },
+					});
+					return;
+				}
+				const username = args.split(/\s+/)[0];
+				const ok = await db.addLeetcodeUsername(env.DB, chatId, username);
+				if (ok) {
+					await ctx.reply(`Added LeetCode username: ${username}`, {
+						reply_parameters: { message_id: ctx.msg.message_id },
+					});
+				} else {
+					await ctx.reply("Failed to add LeetCode username.", {
+						reply_parameters: { message_id: ctx.msg.message_id },
+					});
+				}
+			});
+
+			bot.command("remove_leetcode", async (ctx) => {
+				const chatId = ctx.chat.id;
+				const args = ctx.match?.trim();
+				if (!args) {
+					await ctx.reply("Usage: /remove_leetcode <leetcode_username>", {
+						reply_parameters: { message_id: ctx.msg.message_id },
+					});
+					return;
+				}
+				if (!(await db.checkSubscriber(env.DB, chatId))) {
+					await ctx.reply("This chat must subscribe first.", {
+						reply_parameters: { message_id: ctx.msg.message_id },
+					});
+					return;
+				}
+				const username = args.split(/\s+/)[0];
+				const ok = await db.removeLeetcodeUsername(env.DB, chatId, username);
+				if (ok) {
+					await ctx.reply(`Removed LeetCode username: ${username}`, {
+						reply_parameters: { message_id: ctx.msg.message_id },
+					});
+				} else {
+					await ctx.reply("Failed to remove LeetCode username.", {
+						reply_parameters: { message_id: ctx.msg.message_id },
+					});
+				}
+			});
+
 			return webhookCallback(bot, "cloudflare-mod", {
 				secretToken: env.TELEGRAM_BOT_WEBHOOK_SECRET,
 			})(request);
