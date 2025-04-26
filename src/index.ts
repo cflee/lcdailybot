@@ -171,11 +171,11 @@ export default {
 					const recents = await leetcodeApiRecentAcSubmissions(username, 20);
 					const solved = recents.some((s) => s.titleSlug === dailyQuestion.questionTitleSlug);
 					await db.setCompletionStatus(DB, today, username, solved);
+					console.log(`Latest completion status for ${username}: ${solved ? "solved" : "not solved"}`);
 				} catch (err) {
 					console.error(`Failed to get submissions for ${username}:`, err);
 				}
 			}
-			console.log(`Completion status for ${username}: ${completion ? "solved" : "not solved"}`);
 		}
 		console.log("Completed processing LeetCode usernames");
 
