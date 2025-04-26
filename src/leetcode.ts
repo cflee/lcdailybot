@@ -1,3 +1,6 @@
+import { getDailyQuestion, insertDailyQuestion } from "./db";
+import type { LcDailyProblem } from "./db";
+
 export function todayUtcDate(): string {
 	const today = new Date();
 	const year = today.getUTCFullYear();
@@ -125,48 +128,20 @@ export async function leetcodeApiRecentAcSubmissions(
 
 export async function daily(DB: D1Database): Promise<LcDailyProblem> {
 	const date = todayUtcDate();
-	const dbResult = await DB.prepare(
-		"SELECT date, title, question_id, difficulty, url FROM lcdailyquestion WHERE date = ?",
-	)
-		.bind(date)
-		.run();
-	if (dbResult.results.length > 0) {
-		// return data from the row, as DailyProblemData
-		return {
-			date: dbResult.results[0].date as string,
-			questionTitle: dbResult.results[0].title as string,
-			questionId: dbResult.results[0].question_id as string,
-			questionDifficulty: dbResult.results[0].difficulty as string,
-			url: dbResult.results[0].url as string,
-		};
+	const existingQuestion = await getDailyQuestion(DB, date);
+	if (existingQuestion) {
+		return existingQuestion;
 	}
 
 	const apiDaily = await leetcodeApiDaily();
-	await DB.prepare(
-		"INSERT INTO lcdailyquestion (date, title, question_id, difficulty, url) VALUES (?, ?, ?, ?, ?)",
-	)
-		.bind(
-			date,
-			apiDaily.questionTitle,
-			apiDaily.questionId,
-			apiDaily.questionDifficulty,
-			apiDaily.url,
-		)
-		.run();
-
-	return {
+	const questionData = {
 		date: date,
 		questionTitle: apiDaily.questionTitle,
 		questionId: apiDaily.questionId,
 		questionDifficulty: apiDaily.questionDifficulty,
 		url: apiDaily.url,
 	};
-}
 
-export interface LcDailyProblem {
-	date: string;
-	questionTitle: string;
-	questionId: string;
-	questionDifficulty: string;
-	url: string;
+	await insertDailyQuestion(DB, questionData);
+	return questionData;
 }

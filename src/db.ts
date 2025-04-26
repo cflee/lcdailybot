@@ -93,3 +93,62 @@ export async function removeLeetcodeUsername(
 		return false;
 	}
 }
+
+export interface LcDailyProblem {
+	date: string;
+	questionTitle: string;
+	questionId: string;
+	questionDifficulty: string;
+	url: string;
+}
+
+export async function getDailyQuestion(
+	DB: D1Database,
+	date: string,
+): Promise<LcDailyProblem | null> {
+	try {
+		const dbResult = await DB.prepare(
+			"SELECT date, title, question_id, difficulty, url FROM lcdailyquestion WHERE date = ?",
+		)
+			.bind(date)
+			.run();
+
+		if (dbResult.results.length > 0) {
+			return {
+				date: dbResult.results[0].date as string,
+				questionTitle: dbResult.results[0].title as string,
+				questionId: dbResult.results[0].question_id as string,
+				questionDifficulty: dbResult.results[0].difficulty as string,
+				url: dbResult.results[0].url as string,
+			};
+		}
+		return null;
+	} catch (error) {
+		console.error("Error getting daily question:", error);
+		return null;
+	}
+}
+
+export async function insertDailyQuestion(
+	DB: D1Database,
+	data: LcDailyProblem,
+): Promise<boolean> {
+	try {
+		const result = await DB.prepare(
+			"INSERT INTO lcdailyquestion (date, title, question_id, difficulty, url) VALUES (?, ?, ?, ?, ?)",
+		)
+			.bind(
+				data.date,
+				data.questionTitle,
+				data.questionId,
+				data.questionDifficulty,
+				data.url,
+			)
+			.run();
+
+		return result.success;
+	} catch (error) {
+		console.error("Error inserting daily question:", error);
+		return false;
+	}
+}
