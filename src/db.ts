@@ -1,7 +1,7 @@
 export async function checkSubscriber(DB: D1Database, chatId: number): Promise<boolean> {
   try {
     const existingRecords = await DB.prepare(
-      "SELECT * FROM subscriber WHERE chat_id = ?"
+      "SELECT * FROM chat WHERE chat_id = ?"
     )
     .bind(chatId)
     .all();
@@ -16,7 +16,7 @@ export async function checkSubscriber(DB: D1Database, chatId: number): Promise<b
 export async function insertSubscriber(DB: D1Database, chatId: number): Promise<boolean> {
   try {
     const result = await DB.prepare(
-      "INSERT INTO subscriber (chat_id) VALUES (?)"
+      "INSERT INTO chat (chat_id) VALUES (?)"
     )
     .bind(chatId)
     .run();
@@ -31,7 +31,7 @@ export async function insertSubscriber(DB: D1Database, chatId: number): Promise<
 export async function deleteSubscriber(DB: D1Database, chatId: number): Promise<boolean> {
   try {
     const result = await DB.prepare(
-      "DELETE FROM subscriber WHERE chat_id = ?"
+      "DELETE FROM chat WHERE chat_id = ?"
     )
     .bind(chatId)
     .run();
