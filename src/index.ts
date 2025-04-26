@@ -13,7 +13,12 @@
 
 import { Bot, webhookCallback } from "grammy";
 import * as db from "./db";
-import { daily, todayUtcDate, leetcodeApiDaily, leetcodeApiRecentAcSubmissions } from "./leetcode";
+import {
+	daily,
+	leetcodeApiDaily,
+	leetcodeApiRecentAcSubmissions,
+	todayUtcDate,
+} from "./leetcode";
 
 export default {
 	async fetch(request, env, ctx): Promise<Response> {
@@ -159,7 +164,7 @@ export default {
 			await db.insertDailyQuestion(DB, apiDaily);
 			dailyQuestion = apiDaily;
 		}
-		console.log(`Today's question: ${dailyQuestion.questionTitle}`)
+		console.log(`Today's question: ${dailyQuestion.questionTitle}`);
 
 		const allUsernames = await db.getAllLeetcodeUsernames(DB);
 
@@ -169,9 +174,13 @@ export default {
 			if (completion === null || !completion) {
 				try {
 					const recents = await leetcodeApiRecentAcSubmissions(username, 20);
-					const solved = recents.some((s) => s.titleSlug === dailyQuestion.questionTitleSlug);
+					const solved = recents.some(
+						(s) => s.titleSlug === dailyQuestion.questionTitleSlug,
+					);
 					await db.setCompletionStatus(DB, today, username, solved);
-					console.log(`Latest completion status for ${username}: ${solved ? "solved" : "not solved"}`);
+					console.log(
+						`Latest completion status for ${username}: ${solved ? "solved" : "not solved"}`,
+					);
 				} catch (err) {
 					console.error(`Failed to get submissions for ${username}:`, err);
 				}
@@ -188,8 +197,12 @@ export default {
 				const completed = await db.getCompletionStatus(DB, today, username);
 				statusList.push({ username, completed: !!completed });
 			}
-			const red = statusList.filter((u) => !u.completed).sort((a, b) => a.username.localeCompare(b.username));
-			const green = statusList.filter((u) => u.completed).sort((a, b) => a.username.localeCompare(b.username));
+			const red = statusList
+				.filter((u) => !u.completed)
+				.sort((a, b) => a.username.localeCompare(b.username));
+			const green = statusList
+				.filter((u) => u.completed)
+				.sort((a, b) => a.username.localeCompare(b.username));
 			const emojiLine = `${"🔴".repeat(red.length)}${"🟢".repeat(green.length)}`;
 			let msg = `${emojiLine}
 <b>Daily Challenge for ${today}</b>
@@ -206,16 +219,43 @@ export default {
 			if (previouslySentMsg) {
 				// Do not try to edit message if the text is the same, as the editMessageText API will throw an error
 				if (msg === previouslySentMsg.messageText) {
-					console.log(`Message for chat ${chatId} is the same, skipping update`);
+					console.log(
+						`Message for chat ${chatId} is the same, skipping update`,
+					);
 				} else {
 					try {
-						await bot.api.editMessageText(chatId, Number(previouslySentMsg.messageId), msg, { parse_mode: "HTML", link_preview_options: { is_disabled: true } });
-						await db.setDailyMessageSent(DB, today, chatId, Number(previouslySentMsg.messageId), msg);
+						await bot.api.editMessageText(
+							chatId,
+							Number(previouslySentMsg.messageId),
+							msg,
+							{
+								parse_mode: "HTML",
+								link_preview_options: { is_disabled: true },
+							},
+						);
+						await db.setDailyMessageSent(
+							DB,
+							today,
+							chatId,
+							Number(previouslySentMsg.messageId),
+							msg,
+						);
 					} catch (e) {
 						console.error("Failed to update message:", e);
-						if (e instanceof Error && e.message.includes("message not modified")) {
-							console.log("Force update database with this message since it was not modified");
-							await db.setDailyMessageSent(DB, today, chatId, Number(previouslySentMsg.messageId), msg);
+						if (
+							e instanceof Error &&
+							e.message.includes("message not modified")
+						) {
+							console.log(
+								"Force update database with this message since it was not modified",
+							);
+							await db.setDailyMessageSent(
+								DB,
+								today,
+								chatId,
+								Number(previouslySentMsg.messageId),
+								msg,
+							);
 						}
 					}
 				}
@@ -226,15 +266,29 @@ export default {
 					try {
 						await bot.api.unpinChatMessage(chatId, prevDayMsg.messageId);
 					} catch (e) {
-						console.log("Unpin previous message failed (but it might not be an error if somebody else unpinned it):", e);
+						console.log(
+							"Unpin previous message failed (but it might not be an error if somebody else unpinned it):",
+							e,
+						);
 					}
 				}
 				try {
-					const sent = await bot.api.sendMessage(chatId, msg, { parse_mode: "HTML", link_preview_options: { is_disabled: true } });
+					const sent = await bot.api.sendMessage(chatId, msg, {
+						parse_mode: "HTML",
+						link_preview_options: { is_disabled: true },
+					});
 					if (sent?.message_id) {
-						await db.setDailyMessageSent(DB, today, chatId, sent.message_id, msg);
+						await db.setDailyMessageSent(
+							DB,
+							today,
+							chatId,
+							sent.message_id,
+							msg,
+						);
 						try {
-							await bot.api.pinChatMessage(chatId, sent.message_id, { disable_notification: true });
+							await bot.api.pinChatMessage(chatId, sent.message_id, {
+								disable_notification: true,
+							});
 						} catch (e) {
 							console.error("Failed to pin message:", e);
 						}

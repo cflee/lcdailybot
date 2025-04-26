@@ -255,7 +255,12 @@ export async function getDailyMessageSent(
 		)
 			.bind(date, chatId)
 			.first();
-		return result ? { messageId: Number(result.message_id), messageText: result.message_text as string } : null;
+		return result
+			? {
+					messageId: Number(result.message_id),
+					messageText: result.message_text as string,
+				}
+			: null;
 	} catch (error) {
 		console.error("Error fetching daily message sent:", error);
 		return null;
@@ -292,12 +297,16 @@ export async function getLastDailyMessageSent(
 ): Promise<{ date: string; messageId: number; messageText: string } | null> {
 	try {
 		const result = await DB.prepare(
-			"SELECT date, message_id, message_text FROM daily_question_sent WHERE chat_id = ? AND date < ? ORDER BY date DESC LIMIT 1"
+			"SELECT date, message_id, message_text FROM daily_question_sent WHERE chat_id = ? AND date < ? ORDER BY date DESC LIMIT 1",
 		)
 			.bind(chatId, beforeDate)
 			.first();
 		if (result) {
-			return { date: result.date as string, messageId: Number(result.message_id), messageText: result.message_text as string };
+			return {
+				date: result.date as string,
+				messageId: Number(result.message_id),
+				messageText: result.message_text as string,
+			};
 		}
 		return null;
 	} catch (error) {
