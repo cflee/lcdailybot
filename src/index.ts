@@ -205,11 +205,11 @@ export default {
 			const bot = new Bot(botToken);
 			if (previouslySentMsg) {
 				// Do not try to edit message if the text is the same, as the editMessageText API will throw an error
-				if (msg === previouslySentMsg.message_text) {
+				if (msg === previouslySentMsg.messageText) {
 					console.log(`Message for chat ${chatId} is the same, skipping update`);
 				} else {
 					try {
-						await bot.api.editMessageText(chatId, Number(previouslySentMsg.message_id), msg, { parse_mode: "HTML", link_preview_options: { is_disabled: true } });
+						await bot.api.editMessageText(chatId, Number(previouslySentMsg.messageId), msg, { parse_mode: "HTML", link_preview_options: { is_disabled: true } });
 					} catch (e) {
 						console.error("Failed to update message:", e);
 					}
@@ -219,7 +219,7 @@ export default {
 				const prevDayMsg = await db.getLastDailyMessageSent(DB, chatId, today);
 				if (prevDayMsg) {
 					try {
-						await bot.api.unpinChatMessage(chatId, prevDayMsg.message_id);
+						await bot.api.unpinChatMessage(chatId, prevDayMsg.messageId);
 					} catch (e) {
 						console.log("Unpin previous message failed (but it might not be an error if somebody else unpinned it):", e);
 					}
