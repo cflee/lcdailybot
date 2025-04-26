@@ -146,4 +146,7 @@ export default {
 		}
 		return new Response("Not Found", { status: 404 });
 	},
+	async scheduled(controller, env, ctx) {
+		console.log("schedule task starting");
+	},
 } satisfies ExportedHandler<Env>;
