@@ -199,13 +199,13 @@ export default {
 			}
 			statusList.sort((a, b) => a.username.localeCompare(b.username));
 			const emojiLine = statusList
-				.map((u) => (u.completed ? "🟢" : "🔴"))
+				.map((u) => (u.completed ? "🟢" : "⚪"))
 				.join("");
 			let msg = `${emojiLine}
 <b>Daily Challenge for ${today}</b>
 <a href="${dailyQuestion.url}">${dailyQuestion.questionTitle}</a> (${dailyQuestion.questionDifficulty})`;
 			for (const u of statusList) {
-				msg += `\n${u.completed ? "🟢" : "🔴"} ${u.username}`;
+				msg += `\n${u.completed ? "🟢" : "⚪"} ${u.username}`;
 			}
 
 			const previouslySentMsg = await db.getDailyMessageSent(DB, today, chatId);
