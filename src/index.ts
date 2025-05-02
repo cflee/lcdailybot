@@ -15,7 +15,6 @@ import { Bot, GrammyError, webhookCallback } from "grammy";
 import * as db from "./db";
 import {
 	daily,
-	leetcodeApiDaily,
 	leetcodeApiRecentAcSubmissions,
 	todayUtcDate,
 } from "./leetcode";
@@ -80,12 +79,14 @@ export default {
 			});
 			bot.command("daily", async (ctx) => {
 				console.log(`Received daily command from chat: ${ctx.chat.id}`);
-				const curDaily = await daily(env.DB);
+				const curDaily = await daily(env.DB, env.CLIST_API_KEY);
 				console.log(curDaily);
 				const message = `<b>Daily Challenge for ${curDaily.date}</b>
-<a href="${curDaily.url}">${curDaily.questionTitle}</a> (${curDaily.questionDifficulty})`;
+<a href="${curDaily.url}">${curDaily.questionTitle}</a> (${curDaily.questionDifficulty}${curDaily.clistRating ? ` <tg-spoiler>Clist Rating: ${curDaily.clistRating}</tg-spoiler>` : ""})`;
 				await ctx.reply(message, {
 					parse_mode: "HTML",
+					reply_parameters: { message_id: ctx.msg.message_id },
+					link_preview_options: { is_disabled: true },
 				});
 			});
 
@@ -158,12 +159,7 @@ export default {
 		const today = todayUtcDate();
 
 		console.log(`Today's date: ${today}`);
-		let dailyQuestion = await db.getDailyQuestion(DB, today);
-		if (!dailyQuestion) {
-			const apiDaily = await leetcodeApiDaily();
-			await db.insertDailyQuestion(DB, apiDaily);
-			dailyQuestion = apiDaily;
-		}
+		const dailyQuestion = await daily(DB, env.CLIST_API_KEY);
 		console.log(`Today's question: ${dailyQuestion.questionTitle}`);
 
 		const allUsernames = await db.getAllLeetcodeUsernames(DB);
@@ -203,7 +199,7 @@ export default {
 				.join("");
 			let msg = `${emojiLine}
 <b>Daily Challenge for ${today}</b>
-<a href="${dailyQuestion.url}">${dailyQuestion.questionTitle}</a> (${dailyQuestion.questionDifficulty})`;
+<a href="${dailyQuestion.url}">${dailyQuestion.questionTitle}</a> (${dailyQuestion.questionDifficulty}${dailyQuestion.clistRating ? ` <tg-spoiler>Clist Rating: ${dailyQuestion.clistRating}</tg-spoiler>` : ""})`;
 			for (const u of statusList) {
 				msg += `\n${u.completed ? "🟢" : "⚪"} ${u.username}`;
 			}

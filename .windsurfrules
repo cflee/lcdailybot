@@ -1,0 +1,12 @@
+- This is a Cloudflare Workers project.
+- The data storage is the Cloudflare D1 database, which is SQLite. The SQL schema must work with SQLite.
+- The Telegram bot API client used is the grammY library.
+- Only use the `env` inside `src/index.ts`. Do not pass it into other files. Take the required elements on `env` and pass it to those other functions.
+
+# Naming Conventions
+- Use PascalCase for classes.
+- Use camelCase for variables, functions, and methods.
+- Use kebab-case for file and directory names.
+- Use UPPERCASE for environment variables.
+- Use snake_case for database column names.
+- Avoid magic numbers and define constants.

@@ -1,5 +1,6 @@
 import { getDailyQuestion, insertDailyQuestion } from "./db";
 import type { LcDailyProblem } from "./db";
+import { getProblemInfo } from "./clist";
 
 export function todayUtcDate(): string {
 	const today = new Date();
@@ -34,7 +35,16 @@ async function graphqlRequest<T>(
 	return json.data;
 }
 
-export async function leetcodeApiDaily(): Promise<LcDailyProblem> {
+export interface LcApiDailyProblem {
+	date: string;
+	questionTitle: string;
+	questionTitleSlug: string;
+	questionId: string;
+	questionDifficulty: string;
+	url: string;
+}
+
+export async function leetcodeApiDaily(): Promise<LcApiDailyProblem> {
 	const query = `
         query questionOfTodayV2 {
             activeDailyCodingChallengeQuestion {
@@ -127,7 +137,10 @@ export async function leetcodeApiRecentAcSubmissions(
 	return data.recentAcSubmissionList;
 }
 
-export async function daily(DB: D1Database): Promise<LcDailyProblem> {
+export async function daily(
+	DB: D1Database,
+	clistApiKey: string,
+): Promise<LcDailyProblem> {
 	const date = todayUtcDate();
 	const existingQuestion = await getDailyQuestion(DB, date);
 	if (existingQuestion) {
@@ -135,6 +148,10 @@ export async function daily(DB: D1Database): Promise<LcDailyProblem> {
 	}
 
 	const apiDaily = await leetcodeApiDaily();
+	const clistRating = await getProblemInfo(
+		clistApiKey,
+		apiDaily.questionTitleSlug,
+	);
 	const questionData = {
 		date: date,
 		questionTitle: apiDaily.questionTitle,
@@ -142,6 +159,7 @@ export async function daily(DB: D1Database): Promise<LcDailyProblem> {
 		questionId: apiDaily.questionId,
 		questionDifficulty: apiDaily.questionDifficulty,
 		url: apiDaily.url,
+		clistRating,
 	};
 
 	await insertDailyQuestion(DB, questionData);

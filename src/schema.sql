@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS leetcode_daily_question (
 	question_id TEXT NOT NULL,
 	difficulty TEXT NOT NULL,
 	url TEXT NOT NULL,
+	clist_rating INTEGER,
     UNIQUE (date)
 );
 
