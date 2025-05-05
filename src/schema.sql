@@ -28,6 +28,7 @@ CREATE TABLE IF NOT EXISTS leetcode_daily_completion (
     date TEXT NOT NULL,
     leetcode_username TEXT NOT NULL,
     completed INTEGER NOT NULL DEFAULT 0,
+    submission_url TEXT,
     UNIQUE (date, leetcode_username)
 );
 

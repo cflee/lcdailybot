@@ -167,15 +167,25 @@ export default {
 		console.log(`Total LeetCode usernames: ${allUsernames.length}`);
 		for (const username of allUsernames) {
 			const completion = await db.getCompletionStatus(DB, today, username);
-			if (completion === null || !completion) {
+			if (completion === null || !completion.completed) {
 				try {
 					const recents = await leetcodeApiRecentAcSubmissions(username, 20);
-					const solved = recents.some(
+					const match = recents.find(
 						(s) => s.titleSlug === dailyQuestion.questionTitleSlug,
 					);
-					await db.setCompletionStatus(DB, today, username, solved);
+					const solved = !!match;
+					const submissionUrl = match
+						? `https://leetcode.com/submissions/detail/${match.id}/`
+						: null;
+					await db.setCompletionStatus(
+						DB,
+						today,
+						username,
+						solved,
+						submissionUrl,
+					);
 					console.log(
-						`Latest completion status for ${username}: ${solved ? "solved" : "not solved"}`,
+						`Latest completion status for ${username}: ${solved ? "solved" : "not solved"}${submissionUrl ? `, url: ${submissionUrl}` : ""}`,
 					);
 				} catch (err) {
 					console.error(`Failed to get submissions for ${username}:`, err);
@@ -190,8 +200,12 @@ export default {
 			const usernames = await db.getLeetcodeUsernamesForChat(DB, chatId);
 			const statusList = [];
 			for (const username of usernames) {
-				const completed = await db.getCompletionStatus(DB, today, username);
-				statusList.push({ username, completed: !!completed });
+				const completion = await db.getCompletionStatus(DB, today, username);
+				statusList.push({
+					username,
+					completed: completion?.completed ?? false,
+					submissionUrl: completion?.submissionUrl ?? null,
+				});
 			}
 			statusList.sort((a, b) => a.username.localeCompare(b.username));
 			const emojiLine = statusList
@@ -201,7 +215,11 @@ export default {
 <b>Daily Challenge for ${today}</b>
 <a href="${dailyQuestion.url}">${dailyQuestion.questionTitle}</a> (${dailyQuestion.questionDifficulty}${dailyQuestion.clistRating ? ` <tg-spoiler>Clist Rating: ${dailyQuestion.clistRating}</tg-spoiler>` : ""})`;
 			for (const u of statusList) {
-				msg += `\n${u.completed ? "🟢" : "⚪"} ${u.username}`;
+				if (u.completed && u.submissionUrl) {
+					msg += `\n🟢 <a href="${u.submissionUrl}">${u.username}</a>`;
+				} else {
+					msg += `\n${u.completed ? "🟢" : "⚪"} ${u.username}`;
+				}
 			}
 
 			const previouslySentMsg = await db.getDailyMessageSent(DB, today, chatId);

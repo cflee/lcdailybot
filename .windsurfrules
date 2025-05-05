@@ -1,7 +1,7 @@
 - This is a Cloudflare Workers project.
-- The data storage is the Cloudflare D1 database, which is SQLite. The SQL schema must work with SQLite.
 - The Telegram bot API client used is the grammY library.
 - Only use the `env` inside `src/index.ts`. Do not pass it into other files. Take the required elements on `env` and pass it to those other functions.
+- Prefer to use template literals where there is string interpolation.
 
 # Naming Conventions
 - Use PascalCase for classes.
@@ -10,3 +10,8 @@
 - Use UPPERCASE for environment variables.
 - Use snake_case for database column names.
 - Avoid magic numbers and define constants.
+
+# Database schema
+- The data storage is the Cloudflare D1 database, which is SQLite. The SQL schema and all SQL queries must work with SQLite.
+- The schema is stored in `src/schema.sql`.
+- When a schema change is required, make the change to `src/schema.sql`. Also state the SQL statement required to perform schema migration in the chat response, do not include it in the `src/schema.sql` file.

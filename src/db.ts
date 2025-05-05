@@ -206,45 +206,56 @@ export async function getLeetcodeUsernamesForChat(
 	}
 }
 
-// Check if completion status exists
+export interface LcDailyCompletion {
+	date: string;
+	leetcodeUsername: string;
+	completed: boolean;
+	submissionUrl: string | null;
+}
+
 export async function getCompletionStatus(
 	DB: D1Database,
 	date: string,
-	username: string,
-): Promise<boolean | null> {
+	leetcodeUsername: string,
+): Promise<LcDailyCompletion | null> {
 	try {
-		const result = await DB.prepare(
-			"SELECT completed FROM leetcode_daily_completion WHERE date = ? AND leetcode_username = ?",
+		const dbResult = await DB.prepare(
+			"SELECT completed, submission_url FROM leetcode_daily_completion WHERE date = ? AND leetcode_username = ?",
 		)
-			.bind(date, username)
-			.first();
-		if (!result) return null;
-		return !!result.completed;
+			.bind(date, leetcodeUsername)
+			.all();
+		if (dbResult.results.length > 0) {
+			return {
+				date,
+				leetcodeUsername,
+				completed: !!dbResult.results[0].completed,
+				submissionUrl: dbResult.results[0].submission_url as string | null,
+			};
+		}
+		return null;
 	} catch (error) {
 		console.error("Error fetching completion status:", error);
 		return null;
 	}
 }
 
-// Set completion status
 export async function setCompletionStatus(
 	DB: D1Database,
 	date: string,
-	username: string,
+	leetcodeUsername: string,
 	completed: boolean,
-): Promise<boolean> {
+	submissionUrl: string | null,
+): Promise<void> {
 	try {
-		const completedInt = completed ? 1 : 0;
-		const result = await DB.prepare(
-			"INSERT INTO leetcode_daily_completion (date, leetcode_username, completed) VALUES (?, ?, ?) " +
-				"ON CONFLICT (date, leetcode_username) DO UPDATE SET completed = ?",
+		await DB.prepare(
+			`INSERT INTO leetcode_daily_completion (date, leetcode_username, completed, submission_url)
+			VALUES (?, ?, ?, ?)
+			ON CONFLICT(date, leetcode_username) DO UPDATE SET completed = excluded.completed, submission_url = excluded.submission_url`,
 		)
-			.bind(date, username, completedInt, completedInt)
+			.bind(date, leetcodeUsername, completed ? 1 : 0, submissionUrl)
 			.run();
-		return result.success;
 	} catch (error) {
 		console.error("Error setting completion status:", error);
-		return false;
 	}
 }
 
