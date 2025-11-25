@@ -48,6 +48,8 @@ Env vars might be from the wrangler config file?
 Cron trigger is added and updated in `wrangler.jsonc`.
 Only removal is done via the dashboard.
 
+To deploy local code to Cloudflare:
+
 ```bash
-pnpm exec wrangler deploy --keep-vars src/index.ts
+pnpm run deploy
 ```
