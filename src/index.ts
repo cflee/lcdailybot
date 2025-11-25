@@ -204,7 +204,7 @@ export default {
 			const statusList = [];
 			for (const username of usernames) {
 				const completion = await db.getCompletionStatus(DB, today, username);
-				const streak = await db.getUserStreak(DB, username);
+				const streak = await db.getUserStreak(DB, username, today);
 				statusList.push({
 					username,
 					completed: completion?.completed ?? false,

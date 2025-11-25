@@ -1,3 +1,5 @@
+import { getPreviousDate } from "./leetcode";
+
 export async function checkSubscriber(
 	DB: D1Database,
 	chatId: number,
@@ -341,6 +343,7 @@ export interface UserStreak {
 export async function getUserStreak(
 	DB: D1Database,
 	leetcodeUsername: string,
+	todayDate?: string,
 ): Promise<UserStreak | null> {
 	try {
 		const result = await DB.prepare(
@@ -350,12 +353,25 @@ export async function getUserStreak(
 			.first();
 
 		if (result) {
-			return {
+			const streak = {
 				leetcodeUsername,
 				currentStreak: Number(result.current_streak),
 				maxStreak: Number(result.max_streak),
 				lastCompletedDate: result.last_completed_date as string | null,
 			};
+
+			if (todayDate && streak.lastCompletedDate) {
+				const yesterday = getPreviousDate(todayDate);
+				// If last completed date is neither today nor yesterday, effective streak is 0
+				if (
+					streak.lastCompletedDate !== todayDate &&
+					streak.lastCompletedDate !== yesterday
+				) {
+					streak.currentStreak = 0;
+				}
+			}
+
+			return streak;
 		}
 		return null;
 	} catch (error) {
@@ -388,9 +404,7 @@ export async function updateUserStreak(
 		}
 
 		// Calculate new streak
-		const yesterday = new Date(date);
-		yesterday.setDate(yesterday.getDate() - 1);
-		const yesterdayStr = yesterday.toISOString().split("T")[0];
+		const yesterdayStr = getPreviousDate(date);
 
 		if (lastCompletedDate === yesterdayStr) {
 			currentStreak += 1;
