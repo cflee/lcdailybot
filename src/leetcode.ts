@@ -1,6 +1,6 @@
+import { getProblemInfo } from "./clist";
 import { getDailyQuestion, insertDailyQuestion } from "./db";
 import type { LcDailyProblem } from "./db";
-import { getProblemInfo } from "./clist";
 
 export function todayUtcDate(): string {
 	const today = new Date();
