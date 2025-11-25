@@ -6,7 +6,7 @@
 	"$schema": "node_modules/wrangler/config-schema.json",
 	"name": "lcdailybot",
 	"main": "src/index.ts",
-	"compatibility_date": "2025-04-20",
+	"compatibility_date": "2025-11-25",
 	"observability": {
 		"enabled": true
 	},
