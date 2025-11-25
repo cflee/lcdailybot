@@ -40,3 +40,12 @@ CREATE TABLE IF NOT EXISTS daily_question_sent (
     message_text TEXT,
     UNIQUE (date, chat_id, message_id)
 );
+
+CREATE TABLE IF NOT EXISTS leetcode_user_streak (
+    id INTEGER PRIMARY KEY,
+    leetcode_username TEXT NOT NULL,
+    current_streak INTEGER NOT NULL DEFAULT 0,
+    max_streak INTEGER NOT NULL DEFAULT 0,
+    last_completed_date TEXT,
+    UNIQUE (leetcode_username)
+);

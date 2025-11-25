@@ -11,6 +11,15 @@ export function todayUtcDate(): string {
 	return dateString;
 }
 
+export function getPreviousDate(dateStr: string): string {
+	const date = new Date(dateStr);
+	date.setUTCDate(date.getUTCDate() - 1);
+	const year = date.getUTCFullYear();
+	const month = String(date.getUTCMonth() + 1).padStart(2, "0");
+	const day = String(date.getUTCDate()).padStart(2, "0");
+	return `${year}-${month}-${day}`;
+}
+
 async function graphqlRequest<T>(
 	endpoint: string,
 	query: string,

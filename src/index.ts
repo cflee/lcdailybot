@@ -184,6 +184,9 @@ export default {
 						solved,
 						submissionUrl,
 					);
+					if (solved) {
+						await db.updateUserStreak(DB, username, today);
+					}
 					console.log(
 						`Latest completion status for ${username}: ${solved ? "solved" : "not solved"}${submissionUrl ? `, url: ${submissionUrl}` : ""}`,
 					);
@@ -201,10 +204,12 @@ export default {
 			const statusList = [];
 			for (const username of usernames) {
 				const completion = await db.getCompletionStatus(DB, today, username);
+				const streak = await db.getUserStreak(DB, username);
 				statusList.push({
 					username,
 					completed: completion?.completed ?? false,
 					submissionUrl: completion?.submissionUrl ?? null,
+					streak: streak?.currentStreak ?? 0,
 				});
 			}
 			statusList.sort((a, b) => a.username.localeCompare(b.username));
@@ -219,6 +224,9 @@ export default {
 					msg += `\n🟢 <a href="${u.submissionUrl}">${u.username}</a>`;
 				} else {
 					msg += `\n${u.completed ? "🟢" : "⚪"} ${u.username}`;
+				}
+				if (u.streak > 0) {
+					msg += ` 🔥 ${u.streak}`;
 				}
 			}
 
