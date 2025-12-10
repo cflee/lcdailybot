@@ -225,7 +225,7 @@ export default {
 				} else {
 					msg += `\n${u.completed ? "🟢" : "⚪"} ${u.username}`;
 				}
-				const streakEmoji = u.completed ? "🔥" : "💧";
+				const streakEmoji = u.completed ? "🔥" : "💦";
 				msg += ` ${streakEmoji} ${u.streak}`;
 			}
 
