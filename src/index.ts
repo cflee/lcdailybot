@@ -225,9 +225,8 @@ export default {
 				} else {
 					msg += `\n${u.completed ? "🟢" : "⚪"} ${u.username}`;
 				}
-				if (u.streak > 0) {
-					msg += ` 🔥 ${u.streak}`;
-				}
+				const streakEmoji = u.completed ? "🔥" : "💧";
+				msg += ` ${streakEmoji} ${u.streak}`;
 			}
 
 			const previouslySentMsg = await db.getDailyMessageSent(DB, today, chatId);
