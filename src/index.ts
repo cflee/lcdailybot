@@ -210,6 +210,7 @@ export default {
 					completed: completion?.completed ?? false,
 					submissionUrl: completion?.submissionUrl ?? null,
 					streak: streak?.currentStreak ?? 0,
+					lastCompletedDate: streak?.lastCompletedDate ?? null,
 				});
 			}
 			statusList.sort((a, b) => a.username.localeCompare(b.username));
@@ -225,8 +226,17 @@ export default {
 				} else {
 					msg += `\n${u.completed ? "🟢" : "⚪"} ${u.username}`;
 				}
-				const streakEmoji = u.completed ? "🔥" : "💦";
-				msg += ` ${streakEmoji} ${u.streak}`;
+				let streakEmoji = u.completed ? "🔥" : "📛";
+				let displayDetail = u.streak;
+				if (!u.completed && u.streak === 0 && u.lastCompletedDate) {
+					const lastDate = new Date(u.lastCompletedDate);
+					const todayDate = new Date(today);
+					const diffTime = Math.abs(todayDate.getTime() - lastDate.getTime());
+					const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+					streakEmoji = "💧"
+					displayDetail = Math.max(0, diffDays - 1);
+				}
+				msg += ` ${streakEmoji} ${displayDetail}`;
 			}
 
 			const previouslySentMsg = await db.getDailyMessageSent(DB, today, chatId);
