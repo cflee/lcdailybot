@@ -30,6 +30,21 @@ export default {
 			const bot = new Bot(env.TELEGRAM_BOT_TOKEN, {
 				botInfo: JSON.parse(env.TELEGRAM_BOT_INFO),
 			});
+			bot.command("help", async (ctx) => {
+				const message = `<b>Available Commands:</b>
+/start - Check if the bot is running
+/daily - Get today's LeetCode Daily Challenge
+/subscribe - Subscribe this chat to daily updates
+/unsubscribe - Unsubscribe this chat from daily updates
+/add_leetcode &lt;username&gt; - Add a LeetCode user to track
+/remove_leetcode &lt;username&gt; - Remove a tracked LeetCode user
+/update_leetcode_streak &lt;username&gt; &lt;streak&gt; - Manually set a user's streak`;
+				await ctx.reply(message, {
+					parse_mode: "HTML",
+					reply_parameters: { message_id: ctx.msg.message_id },
+				});
+			});
+
 			bot.command("start", (ctx) => {
 				console.log(`Received start command from chat: ${ctx.chat.id}`);
 				return ctx.reply("Hello world", {
