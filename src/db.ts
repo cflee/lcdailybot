@@ -427,3 +427,31 @@ export async function updateUserStreak(
 		console.error("Error updating user streak:", error);
 	}
 }
+
+export async function overwriteUserStreak(
+	DB: D1Database,
+	leetcodeUsername: string,
+	newStreak: number,
+): Promise<boolean> {
+	try {
+		// Check if user exists first
+		const currentStreakInfo = await getUserStreak(DB, leetcodeUsername);
+		if (!currentStreakInfo) {
+			return false;
+		}
+
+		await DB.prepare(
+			`UPDATE leetcode_user_streak 
+             SET current_streak = ?1, 
+                 max_streak = MAX(max_streak, ?1)
+             WHERE leetcode_username = ?2`,
+		)
+			.bind(newStreak, leetcodeUsername)
+			.run();
+
+		return true;
+	} catch (error) {
+		console.error("Error overwriting user streak:", error);
+		return false;
+	}
+}

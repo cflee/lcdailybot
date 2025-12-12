@@ -146,6 +146,45 @@ export default {
 				}
 			});
 
+			bot.command("update_leetcode_streak", async (ctx) => {
+				const chatId = ctx.chat.id;
+				const args = ctx.match?.trim();
+				const parts = args?.split(/\s+/) || [];
+				if (parts.length !== 2) {
+					await ctx.reply(
+						"Usage: /update_leetcode_streak <leetcode_username> <streak_length>",
+						{
+							reply_parameters: { message_id: ctx.msg.message_id },
+						},
+					);
+					return;
+				}
+				if (!(await db.checkSubscriber(env.DB, chatId))) {
+					await ctx.reply("This chat must subscribe first.", {
+						reply_parameters: { message_id: ctx.msg.message_id },
+					});
+					return;
+				}
+				const username = parts[0];
+				const streak = parseInt(parts[1], 10);
+				if (isNaN(streak) || streak < 0) {
+					await ctx.reply("Streak length must be a non-negative integer.", {
+						reply_parameters: { message_id: ctx.msg.message_id },
+					});
+					return;
+				}
+				const ok = await db.overwriteUserStreak(env.DB, username, streak);
+				if (ok) {
+					await ctx.reply(`Updated streak for ${username} to ${streak}.`, {
+						reply_parameters: { message_id: ctx.msg.message_id },
+					});
+				} else {
+					await ctx.reply(`User ${username} not found.`, {
+						reply_parameters: { message_id: ctx.msg.message_id },
+					});
+				}
+			});
+
 			return webhookCallback(bot, "cloudflare-mod", {
 				secretToken: env.TELEGRAM_BOT_WEBHOOK_SECRET,
 			})(request);
