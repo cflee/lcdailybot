@@ -343,7 +343,6 @@ export interface UserStreak {
 export async function getUserStreak(
 	DB: D1Database,
 	leetcodeUsername: string,
-	todayDate?: string,
 ): Promise<UserStreak | null> {
 	try {
 		const result = await DB.prepare(
@@ -359,17 +358,6 @@ export async function getUserStreak(
 				maxStreak: Number(result.max_streak),
 				lastCompletedDate: result.last_completed_date as string | null,
 			};
-
-			if (todayDate && streak.lastCompletedDate) {
-				const yesterday = getPreviousDate(todayDate);
-				// If last completed date is neither today nor yesterday, effective streak is 0
-				if (
-					streak.lastCompletedDate !== todayDate &&
-					streak.lastCompletedDate !== yesterday
-				) {
-					streak.currentStreak = 0;
-				}
-			}
 
 			return streak;
 		}

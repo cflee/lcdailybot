@@ -17,6 +17,7 @@ import {
 	daily,
 	leetcodeApiRecentAcSubmissions,
 	todayUtcDate,
+	getPreviousDate,
 } from "./leetcode";
 
 export default {
@@ -211,6 +212,7 @@ export default {
 		const DB = env.DB;
 		const botToken = env.TELEGRAM_BOT_TOKEN;
 		const today = todayUtcDate();
+		const yesterday = getPreviousDate(today);
 
 		console.log(`Today's date: ${today}`);
 		const dailyQuestion = await daily(DB, env.CLIST_API_KEY);
@@ -258,13 +260,18 @@ export default {
 			const statusList = [];
 			for (const username of usernames) {
 				const completion = await db.getCompletionStatus(DB, today, username);
-				const streak = await db.getUserStreak(DB, username, today);
+				const streak = await db.getUserStreak(DB, username);
+				let currentStreak = streak?.currentStreak ?? 0;
+				const lastCompletedDate = streak?.lastCompletedDate ?? null;
+
+
+
 				statusList.push({
 					username,
 					completed: completion?.completed ?? false,
 					submissionUrl: completion?.submissionUrl ?? null,
-					streak: streak?.currentStreak ?? 0,
-					lastCompletedDate: streak?.lastCompletedDate ?? null,
+					streak: currentStreak,
+					lastCompletedDate: lastCompletedDate,
 				});
 			}
 			statusList.sort((a, b) => a.username.localeCompare(b.username));
@@ -280,17 +287,20 @@ export default {
 				} else {
 					msg += `\n${u.completed ? "🟢" : "⚪"} ${u.username}`;
 				}
-				// let streakEmoji = u.completed ? "🔥" : "📛";
-				// let displayDetail = u.streak;
-				// if (!u.completed && u.streak === 0 && u.lastCompletedDate) {
-				// 	const lastDate = new Date(u.lastCompletedDate);
-				// 	const todayDate = new Date(today);
-				// 	const diffTime = Math.abs(todayDate.getTime() - lastDate.getTime());
-				// 	const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-				// 	streakEmoji = "💧"
-				// 	displayDetail = Math.max(0, diffDays - 1);
-				// }
-				// msg += ` ${streakEmoji} ${displayDetail}`;
+				let streakEmoji = u.completed ? "🔥" : "📛";
+				const isAlive =
+					u.lastCompletedDate === today || u.lastCompletedDate === yesterday;
+				let displayDetail = isAlive ? u.streak : 0;
+
+				if (!u.completed && !isAlive && u.lastCompletedDate) {
+					const lastDate = new Date(u.lastCompletedDate);
+					const todayDate = new Date(today);
+					const diffTime = Math.abs(todayDate.getTime() - lastDate.getTime());
+					const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+					streakEmoji = "💧";
+					displayDetail = Math.max(0, diffDays - 1);
+				}
+				msg += ` ${streakEmoji} ${displayDetail}`;
 			}
 
 			const previouslySentMsg = await db.getDailyMessageSent(DB, today, chatId);
