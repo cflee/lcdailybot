@@ -399,8 +399,10 @@ export default {
 				!reminderSent &&
 				new Date().getUTCHours() >= 15
 			) {
-				const hasIncomplete = statusList.some((u) => !u.completed);
-				if (hasIncomplete) {
+				const hasStreakAtRisk = statusList.some(
+					(u) => !u.completed && u.lastCompletedDate === yesterday,
+				);
+				if (hasStreakAtRisk) {
 					try {
 						await bot.api.sendMessage(
 							chatId,
