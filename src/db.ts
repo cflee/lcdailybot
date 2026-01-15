@@ -266,10 +266,14 @@ export async function getDailyMessageSent(
 	DB: D1Database,
 	date: string,
 	chatId: number,
-): Promise<{ messageId: number; messageText: string } | null> {
+): Promise<{
+	messageId: number;
+	messageText: string;
+	reminderSent: boolean;
+} | null> {
 	try {
 		const result = await DB.prepare(
-			"SELECT message_id, message_text FROM daily_question_sent WHERE date = ? AND chat_id = ?",
+			"SELECT message_id, message_text, reminder_sent FROM daily_question_sent WHERE date = ? AND chat_id = ?",
 		)
 			.bind(date, chatId)
 			.first();
@@ -277,6 +281,7 @@ export async function getDailyMessageSent(
 			? {
 					messageId: Number(result.message_id),
 					messageText: result.message_text as string,
+					reminderSent: !!result.reminder_sent,
 				}
 			: null;
 	} catch (error) {
@@ -295,7 +300,7 @@ export async function setDailyMessageSent(
 ): Promise<boolean> {
 	try {
 		const result = await DB.prepare(
-			"INSERT INTO daily_question_sent (date, chat_id, message_id, message_text) VALUES (?, ?, ?, ?) " +
+			"INSERT INTO daily_question_sent (date, chat_id, message_id, message_text, reminder_sent) VALUES (?, ?, ?, ?, 0) " +
 				"ON CONFLICT (date, chat_id, message_id) DO UPDATE SET message_text = ?",
 		)
 			.bind(date, chatId, messageId, messageText, messageText)
@@ -303,6 +308,25 @@ export async function setDailyMessageSent(
 		return result.success;
 	} catch (error) {
 		console.error("Error setting daily message sent:", error);
+		return false;
+	}
+}
+
+export async function setReminderSent(
+	DB: D1Database,
+	date: string,
+	chatId: number,
+	messageId: number,
+): Promise<boolean> {
+	try {
+		const result = await DB.prepare(
+			"UPDATE daily_question_sent SET reminder_sent = 1 WHERE date = ? AND chat_id = ? AND message_id = ?",
+		)
+			.bind(date, chatId, messageId)
+			.run();
+		return result.success;
+	} catch (error) {
+		console.error("Error setting reminder sent:", error);
 		return false;
 	}
 }

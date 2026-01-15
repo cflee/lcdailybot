@@ -305,6 +305,9 @@ export default {
 
 			const previouslySentMsg = await db.getDailyMessageSent(DB, today, chatId);
 			const bot = new Bot(botToken);
+			let activeMessageId: number | null = previouslySentMsg?.messageId ?? null;
+			let reminderSent = previouslySentMsg?.reminderSent ?? false;
+
 			if (previouslySentMsg) {
 				// Do not try to edit message if the text is the same, as the editMessageText API will throw an error
 				if (msg === previouslySentMsg.messageText) {
@@ -367,6 +370,7 @@ export default {
 						link_preview_options: { is_disabled: true },
 					});
 					if (sent?.message_id) {
+						activeMessageId = sent.message_id;
 						await db.setDailyMessageSent(
 							DB,
 							today,
@@ -386,6 +390,31 @@ export default {
 					}
 				} catch (e) {
 					console.error("Failed to send message:", e);
+				}
+			}
+
+			// Daily reminder logic
+			if (
+				activeMessageId &&
+				!reminderSent &&
+				new Date().getUTCHours() >= 15
+			) {
+				const hasIncomplete = statusList.some((u) => !u.completed);
+				if (hasIncomplete) {
+					try {
+						await bot.api.sendMessage(
+							chatId,
+							"⏳ <b>Reminder:</b> The daily challenge is waiting! Don't break your streak!",
+							{
+								parse_mode: "HTML",
+								reply_parameters: { message_id: activeMessageId },
+							},
+						);
+						await db.setReminderSent(DB, today, chatId, activeMessageId);
+						console.log(`Reminder sent for chat ${chatId}`);
+					} catch (e) {
+						console.error(`Failed to send reminder for chat ${chatId}:`, e);
+					}
 				}
 			}
 			console.log(`Processed chat: ${chatId}`);
