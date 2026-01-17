@@ -406,7 +406,7 @@ export default {
 					try {
 						await bot.api.sendMessage(
 							chatId,
-							"⏳ <b>Reminder:</b> The daily challenge is waiting! Don't break your streak!",
+							"⏳ <b>Reminder:</b> The daily challenge is waiting!",
 							{
 								parse_mode: "HTML",
 								reply_parameters: { message_id: activeMessageId },
