@@ -2,13 +2,15 @@ import { getProblemInfo } from "./clist";
 import { getDailyQuestion, insertDailyQuestion } from "./db";
 import type { LcDailyProblem } from "./db";
 
+export function toUtcDateString(date: Date): string {
+	const year = date.getUTCFullYear();
+	const month = String(date.getUTCMonth() + 1).padStart(2, "0");
+	const day = String(date.getUTCDate()).padStart(2, "0");
+	return `${year}-${month}-${day}`;
+}
+
 export function todayUtcDate(): string {
-	const today = new Date();
-	const year = today.getUTCFullYear();
-	const month = String(today.getUTCMonth() + 1).padStart(2, "0");
-	const day = String(today.getUTCDate()).padStart(2, "0");
-	const dateString = `${year}-${month}-${day}`;
-	return dateString;
+	return toUtcDateString(new Date());
 }
 
 export function getPreviousDate(dateStr: string): string {

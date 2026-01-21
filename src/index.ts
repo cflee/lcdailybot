@@ -18,6 +18,7 @@ import {
 	leetcodeApiRecentAcSubmissions,
 	todayUtcDate,
 	getPreviousDate,
+	toUtcDateString,
 } from "./leetcode";
 
 export default {
@@ -226,9 +227,15 @@ export default {
 			if (completion === null || !completion.completed) {
 				try {
 					const recents = await leetcodeApiRecentAcSubmissions(username, 20);
-					const match = recents.find(
-						(s) => s.titleSlug === dailyQuestion.questionTitleSlug,
-					);
+					const match = recents.find((s) => {
+						if (s.titleSlug !== dailyQuestion.questionTitleSlug) {
+							return false;
+						}
+						const submissionDate = toUtcDateString(
+							new Date(parseInt(s.timestamp, 10) * 1000),
+						);
+						return submissionDate === today;
+					});
 					const solved = !!match;
 					const submissionUrl = match
 						? `https://leetcode.com/submissions/detail/${match.id}/`
