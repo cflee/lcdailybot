@@ -21,6 +21,13 @@ import {
 	toUtcDateString,
 } from "./leetcode";
 
+function isPrime(num: number): boolean {
+	for (let i = 2, s = Math.sqrt(num); i <= s; i++) {
+		if (num % i === 0) return false;
+	}
+	return num > 1;
+}
+
 export default {
 	async fetch(request, env, ctx): Promise<Response> {
 		if (request.method === "POST") {
@@ -307,7 +314,7 @@ export default {
 					streakEmoji = "💧";
 					displayDetail = Math.max(0, diffDays - 1);
 				}
-				msg += ` ${streakEmoji} ${displayDetail}`;
+				msg += ` ${streakEmoji} ${displayDetail}${isPrime(displayDetail) ? " 🌚" : ""}`;
 			}
 
 			const previouslySentMsg = await db.getDailyMessageSent(DB, today, chatId);
