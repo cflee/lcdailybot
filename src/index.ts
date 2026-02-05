@@ -314,7 +314,7 @@ export default {
 					streakEmoji = "💧";
 					displayDetail = Math.max(0, diffDays - 1);
 				}
-				msg += ` ${streakEmoji} ${displayDetail}${isPrime(displayDetail) ? " 🌚" : ""}`;
+				msg += ` ${streakEmoji} ${displayDetail}${isPrime(displayDetail) ? " ✨" : ""}`;
 			}
 
 			const previouslySentMsg = await db.getDailyMessageSent(DB, today, chatId);
