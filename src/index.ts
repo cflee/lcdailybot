@@ -13,6 +13,7 @@
 
 import { Bot, GrammyError, webhookCallback } from "grammy";
 import * as db from "./db";
+import { loadChatState } from "./chat-state";
 import {
 	daily,
 	leetcodeApiRecentAcSubmissions,
@@ -230,9 +231,9 @@ export default {
 
 		console.log(`Total LeetCode usernames: ${allUsernames.length}`);
 		for (const username of allUsernames) {
-			const completion = await db.getCompletionStatus(DB, today, username);
-			if (completion === null || !completion.completed) {
-				try {
+			try {
+				const completion = await db.getCompletionStatus(DB, today, username);
+				if (completion === null || !completion.completed) {
 					const recents = await leetcodeApiRecentAcSubmissions(username, 20);
 					const match = recents.find((s) => {
 						if (s.titleSlug !== dailyQuestion.questionTitleSlug) {
@@ -251,9 +252,9 @@ export default {
 					console.log(
 						`Latest completion status for ${username}: ${solved ? "solved" : "not solved"}${submissionUrl ? `, url: ${submissionUrl}` : ""}`,
 					);
-				} catch (err) {
-					console.error(`Failed to get submissions for ${username}:`, err);
 				}
+			} catch (err) {
+				console.error(`Failed to process ${username}:`, err);
 			}
 		}
 		console.log("Completed processing LeetCode usernames");
@@ -261,22 +262,14 @@ export default {
 		const allChats = await db.getAllChats(DB);
 		for (const chatId of allChats) {
 			console.log(`Processing chat: ${chatId}`);
-			const usernames = await db.getLeetcodeUsernamesForChat(DB, chatId);
-			const statusList = [];
-			for (const username of usernames) {
-				const completion = await db.getCompletionStatus(DB, today, username);
-				const streak = await db.getUserStreak(DB, username);
-				let currentStreak = streak?.currentStreak ?? 0;
-				const lastCompletedDate = streak?.lastCompletedDate ?? null;
-
-				statusList.push({
-					username,
-					completed: completion?.completed ?? false,
-					submissionUrl: completion?.submissionUrl ?? null,
-					streak: currentStreak,
-					lastCompletedDate: lastCompletedDate,
-				});
+			let chatState: Awaited<ReturnType<typeof loadChatState>>;
+			try {
+				chatState = await loadChatState(DB, today, chatId);
+			} catch (error) {
+				console.error(`Failed to load state for chat ${chatId}:`, error);
+				continue;
 			}
+			const statusList = chatState.statusList;
 			statusList.sort((a, b) => a.username.localeCompare(b.username));
 			const emojiLine = statusList
 				.map((u) => (u.completed ? "🟢" : "⚪"))
@@ -306,7 +299,7 @@ export default {
 				msg += ` ${streakEmoji} ${displayDetail}${isPrime(displayDetail) ? " ✨" : ""}`;
 			}
 
-			const previouslySentMsg = await db.getDailyMessageSent(DB, today, chatId);
+			const previouslySentMsg = chatState.previouslySentMsg;
 			const bot = new Bot(botToken);
 			let activeMessageId: number | null = previouslySentMsg?.messageId ?? null;
 			let reminderSent = previouslySentMsg?.reminderSent ?? false;
@@ -356,7 +349,7 @@ export default {
 				}
 			} else {
 				// New message: unpin previous if any, then send and pin new
-				const prevDayMsg = await db.getLastDailyMessageSent(DB, chatId, today);
+				const prevDayMsg = chatState.previousMessage;
 				if (prevDayMsg) {
 					try {
 						await bot.api.unpinChatMessage(chatId, prevDayMsg.messageId);
