@@ -27,6 +27,25 @@ export async function recordCompletion(
 			WHERE last_completed_date IS NULL OR last_completed_date < excluded.last_completed_date
 		`).bind(username, date, getPreviousDate(date)),
 		);
+		// A concurrent run may already have recorded today before yesterday arrived.
+		// Repair the suffix from stored completions without moving its date backwards.
+		statements.push(
+			DB.prepare(`
+			WITH RECURSIVE suffix(date) AS (
+				SELECT last_completed_date FROM leetcode_user_streak
+				WHERE leetcode_username = ?1 AND last_completed_date = date(?2, '+1 day')
+				UNION ALL
+				SELECT date(suffix.date, '-1 day') FROM suffix
+				JOIN leetcode_daily_completion AS completion
+				ON completion.leetcode_username = ?1
+				AND completion.date = date(suffix.date, '-1 day') AND completion.completed = 1
+			)
+			UPDATE leetcode_user_streak SET
+				current_streak = MAX(current_streak, (SELECT COUNT(*) FROM suffix)),
+				max_streak = MAX(max_streak, (SELECT COUNT(*) FROM suffix))
+			WHERE leetcode_username = ?1 AND last_completed_date = date(?2, '+1 day')
+		`).bind(username, date),
+		);
 	}
 	// D1 batches roll back every statement if any statement fails.
 	const results = await DB.batch(statements);

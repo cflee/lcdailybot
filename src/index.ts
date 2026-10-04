@@ -22,6 +22,9 @@ import {
 	toUtcDateString,
 } from "./leetcode";
 
+const MIDNIGHT_GRACE_HOURS = 1;
+const RECENT_SUBMISSION_LIMIT = 20;
+
 function isPrime(num: number): boolean {
 	for (let i = 2, s = Math.sqrt(num); i <= s; i++) {
 		if (num % i === 0) return false;
@@ -224,41 +227,75 @@ export default {
 		const yesterday = getPreviousDate(today);
 
 		console.log(`Today's date: ${today}`);
-		const dailyQuestion = await daily(DB, env.CLIST_API_KEY);
-		console.log(`Today's question: ${dailyQuestion.questionTitle}`);
+		const inGracePeriod = new Date().getUTCHours() < MIDNIGHT_GRACE_HOURS;
+		// Reconcile from the stored challenge, even while today's API data is unavailable.
+		const previousQuestion = inGracePeriod
+			? await db.getDailyQuestion(DB, yesterday)
+			: null;
+		let dailyQuestion: Awaited<ReturnType<typeof daily>> | null = null;
+		try {
+			dailyQuestion = await daily(DB, env.CLIST_API_KEY);
+			if (dailyQuestion.date !== today) dailyQuestion = null;
+		} catch (error) {
+			console.error("Today's challenge is unavailable:", error);
+		}
+		const questions = [previousQuestion, dailyQuestion].filter(
+			(question): question is NonNullable<typeof question> => question !== null,
+		);
 
 		const allUsernames = await db.getAllLeetcodeUsernames(DB);
 
 		console.log(`Total LeetCode usernames: ${allUsernames.length}`);
 		for (const username of allUsernames) {
-			const completion = await db.getCompletionStatus(DB, today, username);
-			if (completion === null || !completion.completed) {
-				try {
-					const recents = await leetcodeApiRecentAcSubmissions(username, 20);
-					const match = recents.find((s) => {
-						if (s.titleSlug !== dailyQuestion.questionTitleSlug) {
-							return false;
-						}
-						const submissionDate = toUtcDateString(
-							new Date(parseInt(s.timestamp, 10) * 1000),
-						);
-						return submissionDate === today;
-					});
-					const solved = !!match;
-					const submissionUrl = match
-						? `https://leetcode.com/submissions/detail/${match.id}/`
-						: null;
-					await recordCompletion(DB, today, username, solved, submissionUrl);
-					console.log(
-						`Latest completion status for ${username}: ${solved ? "solved" : "not solved"}${submissionUrl ? `, url: ${submissionUrl}` : ""}`,
+			try {
+				const pending = [];
+				for (const question of questions) {
+					const completion = await db.getCompletionStatus(
+						DB,
+						question.date,
+						username,
 					);
-				} catch (err) {
-					console.error(`Failed to get submissions for ${username}:`, err);
+					if (!completion?.completed) pending.push(question);
 				}
+				if (!pending.length) continue;
+				const recents = await leetcodeApiRecentAcSubmissions(
+					username,
+					RECENT_SUBMISSION_LIMIT,
+				);
+				// Oldest first: a recovered yesterday can extend the streak before today's solve.
+				for (const question of pending) {
+					const match = recents.find(
+						(submission) =>
+							submission.titleSlug === question.questionTitleSlug &&
+							toUtcDateString(new Date(Number(submission.timestamp) * 1000)) ===
+								question.date,
+					);
+					if (!match && recents.length >= RECENT_SUBMISSION_LIMIT) {
+						console.warn(
+							`Submission window may be incomplete for ${username} on ${question.date}; leaving status pending`,
+						);
+						continue;
+					}
+					await recordCompletion(
+						DB,
+						question.date,
+						username,
+						!!match,
+						match
+							? `https://leetcode.com/submissions/detail/${match.id}/`
+							: null,
+					);
+				}
+			} catch (error) {
+				console.error(
+					`Failed to reconcile submissions for ${username}:`,
+					error,
+				);
 			}
 		}
 		console.log("Completed processing LeetCode usernames");
 
+		if (!dailyQuestion) return;
 		const allChats = await db.getAllChats(DB);
 		for (const chatId of allChats) {
 			console.log(`Processing chat: ${chatId}`);
