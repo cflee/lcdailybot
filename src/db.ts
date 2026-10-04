@@ -301,9 +301,9 @@ export async function setDailyMessageSent(
 	try {
 		const result = await DB.prepare(
 			"INSERT INTO daily_question_sent (date, chat_id, message_id, message_text, reminder_sent) VALUES (?, ?, ?, ?, 0) " +
-				"ON CONFLICT (date, chat_id, message_id) DO UPDATE SET message_text = ?",
+				"ON CONFLICT (date, chat_id) DO UPDATE SET message_id = excluded.message_id, message_text = excluded.message_text",
 		)
-			.bind(date, chatId, messageId, messageText, messageText)
+			.bind(date, chatId, messageId, messageText)
 			.run();
 		return result.success;
 	} catch (error) {
