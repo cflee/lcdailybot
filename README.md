@@ -53,3 +53,29 @@ To deploy local code to Cloudflare:
 ```bash
 pnpm run deploy
 ```
+
+## Recovering an unresolved daily message claim
+
+The cron takes a durable `daily_message_claim` before sending a new daily post.
+Concurrent cron runs cannot send the same initial post. Claims do not expire:
+a Telegram timeout can mean the message was delivered even though no response
+was received. Retrying automatically would risk duplicate posts.
+
+Inspect claims without a corresponding saved message:
+
+```sql
+SELECT claim.date, claim.chat_id, claim.claimed_at
+FROM daily_message_claim AS claim
+WHERE NOT EXISTS (
+  SELECT 1 FROM daily_question_sent AS sent
+  WHERE sent.date = claim.date AND sent.chat_id = claim.chat_id
+);
+```
+
+Check the Telegram chat before recovering a claim. If the post exists, save its
+message ID and text in `daily_question_sent` and leave the claim in place. If
+it was definitely not delivered, delete only that date/chat claim after the
+previous cron execution has finished; the next cron may send it. A claim acquired
+before a failed database read also requires this recovery. The tradeoff is a
+potential missed post until recovery instead of an automatic duplicate send.
+This coordinates initial daily posts; reminder sends and message edits are unchanged.

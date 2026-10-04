@@ -50,3 +50,10 @@ CREATE TABLE IF NOT EXISTS leetcode_user_streak (
     last_completed_date TEXT,
     UNIQUE (leetcode_username)
 );
+
+CREATE TABLE IF NOT EXISTS daily_message_claim (
+    date TEXT NOT NULL,
+    chat_id INTEGER NOT NULL,
+    claimed_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (date, chat_id)
+);
