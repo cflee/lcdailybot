@@ -50,3 +50,6 @@ CREATE TABLE IF NOT EXISTS leetcode_user_streak (
     last_completed_date TEXT,
     UNIQUE (leetcode_username)
 );
+
+CREATE INDEX IF NOT EXISTS daily_question_sent_chat_date
+    ON daily_question_sent (chat_id, date);
