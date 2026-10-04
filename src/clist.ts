@@ -1,3 +1,4 @@
+import { fetchJson } from "./fetch-json";
 interface ClistProblemResponse {
 	meta: {
 		limit: number;
@@ -30,17 +31,11 @@ async function clistApiGet<T>(
 		url.searchParams.append(key, value);
 	}
 
-	const response = await fetch(url.toString(), {
+	return fetchJson<T>(url.toString(), {
 		headers: {
 			Authorization: `ApiKey ${apiKey}`,
 		},
 	});
-
-	if (!response.ok) {
-		throw new Error(`Clist API request failed with status ${response.status}`);
-	}
-
-	return response.json() as Promise<T>;
 }
 
 export async function getProblemInfo(

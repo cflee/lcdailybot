@@ -1,3 +1,4 @@
+import { fetchJson } from "./fetch-json";
 import { getProblemInfo } from "./clist";
 import { getDailyQuestion, insertDailyQuestion } from "./db";
 import type { LcDailyProblem } from "./db";
@@ -28,18 +29,13 @@ async function graphqlRequest<T>(
 	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 	variables?: Record<string, any>,
 ): Promise<T> {
-	const response = await fetch(endpoint, {
+	const json = await fetchJson<{ data: T; errors?: unknown }>(endpoint, {
 		method: "POST",
 		headers: {
 			"Content-Type": "application/json",
 		},
 		body: JSON.stringify({ query, variables }),
 	});
-	if (!response.ok) {
-		throw new Error(`GraphQL request failed with status ${response.status}`);
-	}
-	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
-	const json: any = await response.json();
 	if (json.errors) {
 		throw new Error(`GraphQL error: ${JSON.stringify(json.errors)}`);
 	}
