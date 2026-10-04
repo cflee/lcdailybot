@@ -13,7 +13,6 @@
 
 import { Bot, GrammyError, webhookCallback } from "grammy";
 import * as db from "./db";
-import { recordCompletion } from "./completion";
 import {
 	daily,
 	leetcodeApiRecentAcSubmissions,
@@ -248,7 +247,7 @@ export default {
 					const submissionUrl = match
 						? `https://leetcode.com/submissions/detail/${match.id}/`
 						: null;
-					await recordCompletion(DB, today, username, solved, submissionUrl);
+					await db.recordCompletion(DB, today, username, solved, submissionUrl);
 					console.log(
 						`Latest completion status for ${username}: ${solved ? "solved" : "not solved"}${submissionUrl ? `, url: ${submissionUrl}` : ""}`,
 					);
