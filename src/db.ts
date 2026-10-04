@@ -276,26 +276,6 @@ export async function recordCompletion(
 	}
 }
 
-export async function setCompletionStatus(
-	DB: D1Database,
-	date: string,
-	leetcodeUsername: string,
-	completed: boolean,
-	submissionUrl: string | null,
-): Promise<void> {
-	try {
-		await DB.prepare(
-			`INSERT INTO leetcode_daily_completion (date, leetcode_username, completed, submission_url)
-			VALUES (?, ?, ?, ?)
-			ON CONFLICT(date, leetcode_username) DO UPDATE SET completed = excluded.completed, submission_url = excluded.submission_url`,
-		)
-			.bind(date, leetcodeUsername, completed ? 1 : 0, submissionUrl)
-			.run();
-	} catch (error) {
-		console.error("Error setting completion status:", error);
-	}
-}
-
 // Get sent message info for chat/date
 export async function getDailyMessageSent(
 	DB: D1Database,
@@ -424,54 +404,6 @@ export async function getUserStreak(
 	} catch (error) {
 		console.error("Error getting user streak:", error);
 		return null;
-	}
-}
-
-export async function updateUserStreak(
-	DB: D1Database,
-	leetcodeUsername: string,
-	date: string,
-): Promise<void> {
-	try {
-		// Get current streak info
-		const currentStreakInfo = await getUserStreak(DB, leetcodeUsername);
-		let currentStreak = 0;
-		let maxStreak = 0;
-		let lastCompletedDate: string | null = null;
-
-		if (currentStreakInfo) {
-			currentStreak = currentStreakInfo.currentStreak;
-			maxStreak = currentStreakInfo.maxStreak;
-			lastCompletedDate = currentStreakInfo.lastCompletedDate;
-		}
-
-		// If already completed for this date, do nothing
-		if (lastCompletedDate === date) {
-			return;
-		}
-
-		// Calculate new streak
-		const yesterdayStr = getPreviousDate(date);
-
-		if (lastCompletedDate === yesterdayStr) {
-			currentStreak += 1;
-		} else {
-			currentStreak = 1;
-		}
-
-		if (currentStreak > maxStreak) {
-			maxStreak = currentStreak;
-		}
-
-		await DB.prepare(
-			`INSERT INTO leetcode_user_streak (leetcode_username, current_streak, max_streak, last_completed_date)
-            VALUES (?, ?, ?, ?)
-            ON CONFLICT(leetcode_username) DO UPDATE SET current_streak = excluded.current_streak, max_streak = excluded.max_streak, last_completed_date = excluded.last_completed_date`,
-		)
-			.bind(leetcodeUsername, currentStreak, maxStreak, date)
-			.run();
-	} catch (error) {
-		console.error("Error updating user streak:", error);
 	}
 }
 
