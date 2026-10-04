@@ -131,7 +131,7 @@ export async function getDailyQuestion(
 		return null;
 	} catch (error) {
 		console.error("Error getting daily question:", error);
-		return null;
+		throw error;
 	}
 }
 
@@ -141,7 +141,7 @@ export async function insertDailyQuestion(
 ): Promise<boolean> {
 	try {
 		const result = await DB.prepare(
-			"INSERT INTO leetcode_daily_question (date, title, title_slug, question_id, difficulty, url, clist_rating) VALUES (?, ?, ?, ?, ?, ?, ?)",
+			"INSERT INTO leetcode_daily_question (date, title, title_slug, question_id, difficulty, url, clist_rating) VALUES (?, ?, ?, ?, ?, ?, ?) ON CONFLICT(date) DO NOTHING",
 		)
 			.bind(
 				data.date,
@@ -157,7 +157,7 @@ export async function insertDailyQuestion(
 		return result.success;
 	} catch (error) {
 		console.error("Error inserting daily question:", error);
-		return false;
+		throw error;
 	}
 }
 
@@ -466,4 +466,16 @@ export async function overwriteUserStreak(
 		console.error("Error overwriting user streak:", error);
 		return false;
 	}
+}
+
+export async function setDailyQuestionRating(
+	DB: D1Database,
+	date: string,
+	rating: number,
+): Promise<void> {
+	await DB.prepare(
+		"UPDATE leetcode_daily_question SET clist_rating = ? WHERE date = ? AND clist_rating IS NULL",
+	)
+		.bind(rating, date)
+		.run();
 }
