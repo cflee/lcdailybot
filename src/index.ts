@@ -337,13 +337,18 @@ export default {
 							console.log(
 								"Force update database with this message since it was not modified",
 							);
-							await db.setDailyMessageSent(
-								DB,
-								today,
-								chatId,
-								Number(previouslySentMsg.messageId),
-								msg,
-							);
+							try {
+								await db.setDailyMessageSent(
+									DB,
+									today,
+									chatId,
+									Number(previouslySentMsg.messageId),
+									msg,
+								);
+							} catch (error) {
+								console.error(`Failed to recover message state for chat ${chatId}:`, error);
+								continue;
+							}
 						}
 					}
 				}
