@@ -247,16 +247,7 @@ export default {
 					const submissionUrl = match
 						? `https://leetcode.com/submissions/detail/${match.id}/`
 						: null;
-					await db.setCompletionStatus(
-						DB,
-						today,
-						username,
-						solved,
-						submissionUrl,
-					);
-					if (solved) {
-						await db.updateUserStreak(DB, username, today);
-					}
+					await db.recordCompletion(DB, today, username, solved, submissionUrl);
 					console.log(
 						`Latest completion status for ${username}: ${solved ? "solved" : "not solved"}${submissionUrl ? `, url: ${submissionUrl}` : ""}`,
 					);
@@ -277,8 +268,6 @@ export default {
 				const streak = await db.getUserStreak(DB, username);
 				let currentStreak = streak?.currentStreak ?? 0;
 				const lastCompletedDate = streak?.lastCompletedDate ?? null;
-
-
 
 				statusList.push({
 					username,
@@ -408,11 +397,7 @@ export default {
 			}
 
 			// Daily reminder logic
-			if (
-				activeMessageId &&
-				!reminderSent &&
-				new Date().getUTCHours() >= 15
-			) {
+			if (activeMessageId && !reminderSent && new Date().getUTCHours() >= 15) {
 				const hasStreakAtRisk = statusList.some(
 					(u) => !u.completed && u.lastCompletedDate === yesterday,
 				);
