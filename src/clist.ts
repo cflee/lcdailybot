@@ -1,3 +1,5 @@
+const CLIST_TIMEOUT_MS = 4_000;
+
 interface ClistProblemResponse {
 	meta: {
 		limit: number;
@@ -30,17 +32,27 @@ async function clistApiGet<T>(
 		url.searchParams.append(key, value);
 	}
 
-	const response = await fetch(url.toString(), {
-		headers: {
-			Authorization: `ApiKey ${apiKey}`,
-		},
-	});
+	const controller = new AbortController();
+	const timeout = setTimeout(() => controller.abort(), CLIST_TIMEOUT_MS);
+	try {
+		const response = await fetch(url.toString(), {
+			headers: {
+				Authorization: `ApiKey ${apiKey}`,
+			},
+			signal: controller.signal,
+		});
 
-	if (!response.ok) {
-		throw new Error(`Clist API request failed with status ${response.status}`);
+		if (!response.ok) {
+			throw new Error(
+				`Clist API request failed with status ${response.status}`,
+			);
+		}
+
+		// Keep the timeout active until the response body has been parsed.
+		return (await response.json()) as T;
+	} finally {
+		clearTimeout(timeout);
 	}
-
-	return response.json() as Promise<T>;
 }
 
 export async function getProblemInfo(
