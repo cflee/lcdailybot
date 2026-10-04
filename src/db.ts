@@ -248,6 +248,8 @@ export async function recordCompletion(
 	completed: boolean,
 	submissionUrl: string | null,
 ): Promise<void> {
+	// Overlapping polls can return stale unsolved results after a confirmed solve.
+	// Preserve the confirmed completion and its submission URL.
 	const completion = DB.prepare(`
 		INSERT INTO leetcode_daily_completion (date, leetcode_username, completed, submission_url)
 		VALUES (?1, ?2, ?3, ?4)
@@ -257,6 +259,9 @@ export async function recordCompletion(
 	`).bind(date, username, completed ? 1 : 0, submissionUrl);
 	const statements = [completion];
 	if (completed) {
+		// Only newer dates advance the streak: retries must not count twice, and
+		// late results must not move it backward. Extend the stored streak on
+		// consecutive dates so manual adjustments remain the baseline.
 		statements.push(
 			DB.prepare(`
 			INSERT INTO leetcode_user_streak (leetcode_username, current_streak, max_streak, last_completed_date)
