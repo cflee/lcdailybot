@@ -179,7 +179,7 @@ export async function getAllLeetcodeUsernames(
 ): Promise<string[]> {
 	try {
 		const result = await DB.prepare(
-			"SELECT DISTINCT leetcode_username FROM chat_leetcode_usernames",
+			"SELECT DISTINCT usernames.leetcode_username FROM chat_leetcode_usernames AS usernames INNER JOIN chat ON chat.chat_id = usernames.chat_id",
 		).all();
 		// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 		return result.results.map((row: any) => row.leetcode_username);
