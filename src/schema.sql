@@ -39,7 +39,7 @@ CREATE TABLE IF NOT EXISTS daily_question_sent (
     message_id INTEGER NOT NULL,
     message_text TEXT,
     reminder_sent INTEGER DEFAULT 0,
-    UNIQUE (date, chat_id, message_id)
+    UNIQUE (date, chat_id)
 );
 
 CREATE TABLE IF NOT EXISTS leetcode_user_streak (
