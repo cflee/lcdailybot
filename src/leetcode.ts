@@ -1,5 +1,9 @@
 import { getProblemInfo } from "./clist";
-import { getDailyQuestion, insertDailyQuestion } from "./db";
+import {
+	getDailyQuestion,
+	insertDailyQuestion,
+	setDailyQuestionRating,
+} from "./db";
 import type { LcDailyProblem } from "./db";
 
 export function toUtcDateString(date: Date): string {
@@ -109,7 +113,25 @@ export async function leetcodeApiDaily(): Promise<LcApiDailyProblem> {
 			};
 		};
 	}>(endpoint, query);
-	const daily = data.activeDailyCodingChallengeQuestion;
+	const daily = data?.activeDailyCodingChallengeQuestion;
+	const question = daily?.question;
+	if (
+		!daily ||
+		!question ||
+		typeof daily.date !== "string" ||
+		!/^\d{4}-\d{2}-\d{2}$/.test(daily.date) ||
+		typeof daily.link !== "string" ||
+		!/^\/problems\/[a-z0-9-]+\/(?:\?.*)?$/.test(daily.link) ||
+		typeof question.title !== "string" ||
+		!question.title.trim() ||
+		typeof question.titleSlug !== "string" ||
+		!/^[a-z0-9-]+$/.test(question.titleSlug) ||
+		typeof question.questionFrontendId !== "string" ||
+		!/^\d+$/.test(question.questionFrontendId) ||
+		!["Easy", "Medium", "Hard"].includes(question.difficulty)
+	) {
+		throw new Error("LeetCode returned an invalid daily challenge");
+	}
 	return {
 		url: `https://leetcode.com${daily.link}`,
 		date: daily.date,
@@ -153,26 +175,35 @@ export async function daily(
 	clistApiKey: string,
 ): Promise<LcDailyProblem> {
 	const date = todayUtcDate();
-	const existingQuestion = await getDailyQuestion(DB, date);
-	if (existingQuestion) {
-		return existingQuestion;
+	let question = await getDailyQuestion(DB, date);
+	if (!question) {
+		const apiDaily = await leetcodeApiDaily();
+		if (apiDaily.date !== date) {
+			throw new Error(
+				`LeetCode daily date ${apiDaily.date} does not match ${date}`,
+			);
+		}
+		// Save the challenge before making an optional Clist request.
+		if (!(await insertDailyQuestion(DB, { ...apiDaily, clistRating: null }))) {
+			throw new Error(`Failed to cache daily challenge for ${date}`);
+		}
+		question = await getDailyQuestion(DB, date);
+		if (!question)
+			throw new Error(`Cached daily challenge missing for ${date}`);
 	}
-
-	const apiDaily = await leetcodeApiDaily();
-	const clistRating = await getProblemInfo(
-		clistApiKey,
-		apiDaily.questionTitleSlug,
-	);
-	const questionData = {
-		date: date,
-		questionTitle: apiDaily.questionTitle,
-		questionTitleSlug: apiDaily.questionTitleSlug,
-		questionId: apiDaily.questionId,
-		questionDifficulty: apiDaily.questionDifficulty,
-		url: apiDaily.url,
-		clistRating,
-	};
-
-	await insertDailyQuestion(DB, questionData);
-	return questionData;
+	if (question.clistRating === null && clistApiKey) {
+		try {
+			const rating = await getProblemInfo(
+				clistApiKey,
+				question.questionTitleSlug,
+			);
+			if (rating !== null && Number.isFinite(rating)) {
+				await setDailyQuestionRating(DB, date, rating);
+				question = (await getDailyQuestion(DB, date)) ?? question;
+			}
+		} catch (error) {
+			console.error("Failed to enrich cached daily challenge:", error);
+		}
+	}
+	return question;
 }
