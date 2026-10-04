@@ -13,6 +13,7 @@
 
 import { Bot, GrammyError, webhookCallback } from "grammy";
 import * as db from "./db";
+import { claimDailyMessage } from "./message-claim";
 import {
 	daily,
 	leetcodeApiRecentAcSubmissions,
@@ -278,8 +279,6 @@ export default {
 				let currentStreak = streak?.currentStreak ?? 0;
 				const lastCompletedDate = streak?.lastCompletedDate ?? null;
 
-
-
 				statusList.push({
 					username,
 					completed: completion?.completed ?? false,
@@ -366,6 +365,17 @@ export default {
 					}
 				}
 			} else {
+				try {
+					if (!(await claimDailyMessage(DB, today, chatId))) {
+						console.warn(
+							`Daily message for ${chatId} on ${today} is already recorded or claimed; inspect unresolved claims before retrying`,
+						);
+						continue;
+					}
+				} catch (error) {
+					console.error(`Failed to claim daily message for ${chatId}:`, error);
+					continue;
+				}
 				// New message: unpin previous if any, then send and pin new
 				const prevDayMsg = await db.getLastDailyMessageSent(DB, chatId, today);
 				if (prevDayMsg) {
@@ -408,11 +418,7 @@ export default {
 			}
 
 			// Daily reminder logic
-			if (
-				activeMessageId &&
-				!reminderSent &&
-				new Date().getUTCHours() >= 15
-			) {
+			if (activeMessageId && !reminderSent && new Date().getUTCHours() >= 15) {
 				const hasStreakAtRisk = statusList.some(
 					(u) => !u.completed && u.lastCompletedDate === yesterday,
 				);
