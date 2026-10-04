@@ -14,7 +14,7 @@ export async function checkSubscriber(
 		return existingRecords.results.length > 0;
 	} catch (error) {
 		console.error("Error checking subscriber:", error);
-		return false;
+		throw error;
 	}
 }
 
@@ -30,7 +30,7 @@ export async function insertSubscriber(
 		return result.success;
 	} catch (error) {
 		console.error("Error inserting subscriber:", error);
-		return false;
+		throw error;
 	}
 }
 
@@ -46,7 +46,7 @@ export async function deleteSubscriber(
 		return result.success;
 	} catch (error) {
 		console.error("Error deleting subscriber:", error);
-		return false;
+		throw error;
 	}
 }
 
@@ -57,24 +57,14 @@ export async function addLeetcodeUsername(
 ): Promise<boolean> {
 	try {
 		const result = await DB.prepare(
-			"INSERT INTO chat_leetcode_usernames (chat_id, leetcode_username) VALUES (?, ?)",
+			"INSERT INTO chat_leetcode_usernames (chat_id, leetcode_username) VALUES (?, ?) ON CONFLICT(chat_id, leetcode_username) DO NOTHING",
 		)
 			.bind(chatId, username)
 			.run();
 		return result.success;
-	} catch (error: unknown) {
-		if (
-			typeof error === "object" &&
-			error !== null &&
-			"message" in error &&
-			typeof (error as Record<string, unknown>).message === "string" &&
-			(error as { message: string }).message.includes("UNIQUE")
-		) {
-			// Already exists, treat as success
-			return true;
-		}
+	} catch (error) {
 		console.error("Error adding leetcode username:", error);
-		return false;
+		throw error;
 	}
 }
 
@@ -92,7 +82,7 @@ export async function removeLeetcodeUsername(
 		return result.success;
 	} catch (error) {
 		console.error("Error removing leetcode username:", error);
-		return false;
+		throw error;
 	}
 }
 
@@ -131,7 +121,7 @@ export async function getDailyQuestion(
 		return null;
 	} catch (error) {
 		console.error("Error getting daily question:", error);
-		return null;
+		throw error;
 	}
 }
 
@@ -157,7 +147,7 @@ export async function insertDailyQuestion(
 		return result.success;
 	} catch (error) {
 		console.error("Error inserting daily question:", error);
-		return false;
+		throw error;
 	}
 }
 
@@ -169,7 +159,7 @@ export async function getAllChats(DB: D1Database): Promise<number[]> {
 		return result.results.map((row: any) => row.chat_id);
 	} catch (error) {
 		console.error("Error fetching all chats:", error);
-		return [];
+		throw error;
 	}
 }
 
@@ -185,7 +175,7 @@ export async function getAllLeetcodeUsernames(
 		return result.results.map((row: any) => row.leetcode_username);
 	} catch (error) {
 		console.error("Error fetching all leetcode usernames:", error);
-		return [];
+		throw error;
 	}
 }
 
@@ -204,7 +194,7 @@ export async function getLeetcodeUsernamesForChat(
 		return result.results.map((row: any) => row.leetcode_username);
 	} catch (error) {
 		console.error("Error fetching leetcode usernames for chat:", error);
-		return [];
+		throw error;
 	}
 }
 
@@ -237,7 +227,7 @@ export async function getCompletionStatus(
 		return null;
 	} catch (error) {
 		console.error("Error fetching completion status:", error);
-		return null;
+		throw error;
 	}
 }
 
@@ -258,6 +248,7 @@ export async function setCompletionStatus(
 			.run();
 	} catch (error) {
 		console.error("Error setting completion status:", error);
+		throw error;
 	}
 }
 
@@ -286,7 +277,7 @@ export async function getDailyMessageSent(
 			: null;
 	} catch (error) {
 		console.error("Error fetching daily message sent:", error);
-		return null;
+		throw error;
 	}
 }
 
@@ -308,7 +299,7 @@ export async function setDailyMessageSent(
 		return result.success;
 	} catch (error) {
 		console.error("Error setting daily message sent:", error);
-		return false;
+		throw error;
 	}
 }
 
@@ -327,7 +318,7 @@ export async function setReminderSent(
 		return result.success;
 	} catch (error) {
 		console.error("Error setting reminder sent:", error);
-		return false;
+		throw error;
 	}
 }
 
@@ -353,7 +344,7 @@ export async function getLastDailyMessageSent(
 		return null;
 	} catch (error) {
 		console.error("Error getting last daily message sent:", error);
-		return null;
+		throw error;
 	}
 }
 
@@ -388,7 +379,7 @@ export async function getUserStreak(
 		return null;
 	} catch (error) {
 		console.error("Error getting user streak:", error);
-		return null;
+		throw error;
 	}
 }
 
@@ -437,6 +428,7 @@ export async function updateUserStreak(
 			.run();
 	} catch (error) {
 		console.error("Error updating user streak:", error);
+		throw error;
 	}
 }
 
@@ -464,6 +456,6 @@ export async function overwriteUserStreak(
 		return true;
 	} catch (error) {
 		console.error("Error overwriting user streak:", error);
-		return false;
+		throw error;
 	}
 }
